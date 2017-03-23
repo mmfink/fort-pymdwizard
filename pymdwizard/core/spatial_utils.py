@@ -355,7 +355,9 @@ def get_params(layer):
 
 
     #SPCS_Zone
-    if 'stateplane' in params['mapprojn'].lower():
+
+    if params['mapprojn'] is not None and \
+                'stateplane' in params['mapprojn'].lower():
         parts = params['mapprojn'].split('_')
         params['spcszone'] = parts[parts.index('FIPS')+1]
     #PCS_Units
@@ -417,22 +419,18 @@ def get_layer(fname, feature_class=None):
     Either a gdal Dataset or a ogr layer depending on the input
     """
     if fname.endswith('.shp'):
-        global driver
         driver = ogr.GetDriverByName('ESRI Shapefile')
-        global dataset
         dataset = driver.Open(fname)
-        global data
-        data = dataset.GetLayer()
+        return dataset.GetLayer()
     elif fname.endswith('.gdb'):
         driver = ogr.GetDriverByName("OpenFileGDB")
-        gdb = driver.Open(gdb_path, 0)
-        data = gdb.GetLayerByName(feature_class)
+        gdb = driver.Open(fname, 0)
+        return gdb.GetLayerByName(feature_class)
     else:
         #it better be a raster
-        # global data
-        data = gdal.Open(fname)
+        return gdal.Open(fname)
 
-    return data
+    return None
 
 
 def spatial_ref(fname, feature_class=None):
@@ -671,3 +669,99 @@ def get_bounding(fname):
     southbc = xml_node('southbc', extent[2], bounding)
 
     return bounding
+
+def get_spdoinfo(fname, feature_class=None):
+    """
+    Return FGDC bounding element from provided spatial file
+
+    Parameters
+    ----------
+    fname : name of the shp or tif file we'll be generating the bounding for
+
+    Returns
+    -------
+    lxml element with FGDC Bounding
+    """
+    if fname.endswith('.shp'):
+        driver = ogr.GetDriverByName('ESRI Shapefile')
+        dataset = driver.Open(fname)
+        layer = dataset.GetLayer()
+        return vector_spdoinfo(layer)
+    elif fname.endswith('.gdb'):
+        driver = ogr.GetDriverByName("OpenFileGDB")
+        gdb = driver.Open(fname, 0)
+        layer = gdb.GetLayerByName(feature_class)
+        return vector_spdoinfo(layer)
+    else:
+        #it better be a raster
+        data = gdal.Open(fname)
+        return raster_spdoinfo(data)
+
+    return None
+
+
+def vector_spdoinfo(layer):
+    """
+    generate a fgdc Point Vector Object information element from a OGR layer
+    Parameters
+    ----------
+    layer : ogr layer
+
+    Returns
+    -------
+    lxml element
+    """
+    #introspect our layer to get the info we need
+    feature_count = layer.GetFeatureCount()
+    for geo in data:
+        geo_ref = geo.GetGeometryRef()
+        geo_type = geo_ref.GetGeometryType()
+        break
+
+    #create the FGDC element
+    spdoinfo = xml_node('spdoinfo')
+    direct = xml_node('direct', text='Vector', parent_node=spdoinfo)
+
+    ptvctinf = xml_node('ptvctinf', parent_node=spdoinfo)
+    sdtsterm = xml_node('sdtsterm', parent_node=ptvctinf)
+
+    if geo_type == 3:
+        sdtstype = xml_node('sdtstype', text='G-polygon', parent_node=sdtsterm)
+    elif geo_type == 2:
+        sdtstype = xml_node('sdtstype', text='String', parent_node=sdtsterm)
+    elif geo_type == 1:
+        sdtstype = xml_node('sdtstype', text='Entity point',
+                            parent_node=sdtsterm)
+
+    xml_node('ptvctcnt', text = feature_count, parent_node=sdtsterm)
+    return spdoinfo
+
+
+def raster_spdoinfo(data):
+    """
+    generate a fgdc Raster Object information element from a gdal dataset
+    Parameters
+    ----------
+    data : gdal dataset
+
+    Returns
+    -------
+    lxml element
+    """
+    #introspect our data to get the info we need
+    raster_type = "Grid Cell" # This is the most probable answer
+    cols = data.RasterXSize
+    rows = data.RasterYSize
+    bands = data.RasterCount
+
+    #create the FGDC element
+    spdoinfo = xml_node('spdoinfo')
+    direct = xml_node('direct', text='Raster', parent_node=spdoinfo)
+    rastinfo = xml_node('rastinfo', parent_node=spdoinfo)
+
+    rasttype = xml_node('rasttype', text=raster_type, parent_node=rastinfo)
+    rowcount = xml_node('rowcount', text=rows, parent_node=rastinfo)
+    colcount = xml_node('colcount', text=cols, parent_node=rastinfo)
+    vrtcount = xml_node('vrtcount', text=bands, parent_node=rastinfo)
+
+    return spdoinfo

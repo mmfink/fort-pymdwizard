@@ -94,24 +94,14 @@ class RepeatingElement(QWidget):
             self.ui.italic_label.setText(italic_text)
 
         if which == 'vertical':
-            self.SA = self.ui.vertical_contents
-            self.content_layout = self.ui.vertical_contents.layout()
+            self.SA = self.ui.vertical_widget
+            self.content_layout = self.ui.vertical_widget.layout()
             self.tab = False
-
-            self.ui.tab_widget.hide()
-            self.ui.horizontal_scroll.hide()
-        elif which == 'horizontal':
-            self.ui.stackedWidget.setCurrentIndex(1)
-            self.SA = self.ui.horizontal_contents
-            self.content_layout = self.ui.horizontal_contents.layout()
-            self.tab = False
-            self.ui.tab_widget.hide()
-            self.ui.vertical_widget.hide()
+            self.ui.tab_widget.deleteLater()
         elif which == 'tab':
             self.content_widget = self.ui.tab_widget
             self.tab = True
-            self.ui.horizontal_scroll.hide()
-            self.ui.vertical_scroll.hide()
+            self.ui.vertical_widget.deleteLater()
 
         self.tab_label = tab_label
 
@@ -162,7 +152,7 @@ class RepeatingElement(QWidget):
         if self.tab:
             if not tab_label:
                 tab_label = ' '.join([self.tab_label,
-                                      str(self.ui.tab_widget.count() + 1)])
+                                      str(len(self.widgets))])
             self.ui.tab_widget.addTab(widget, tab_label)
         else:
             self.content_layout.insertWidget(len(self.widgets)-1, widget)
@@ -185,15 +175,16 @@ class RepeatingElement(QWidget):
 
 if __name__ == "__main__":
 
-    from pymdwizard.gui import attr, edom, single_date
+    from pymdwizard.gui import attr, edom, single_date, sourceinput
     import random
 
 
 
 
-    utils.launch_widget(RepeatingElement, which='tab',
+    utils.launch_widget(RepeatingElement, which='vertical',
                         tab_label='Processing Step', add_text='test add',
-                        widget = attr.Attr, remove_text='test remove', italic_text='some instruction')
+                        # widget = sourceinput.SourceInput,
+                        remove_text='test remove', italic_text='some instruction')
 
 
 

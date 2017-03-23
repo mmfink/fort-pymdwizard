@@ -74,21 +74,21 @@ class Citation(WizardWidget): #
         -------
         None
         """
-        self.ui = UI_Citation.Ui_Form()
+        self.ui = UI_Citation.Ui_fgdc_citation()
         self.ui.setupUi(self)
 
         if self.include_lwork:
             self.lworkcit_widget = Citation(parent=self, include_lwork=False)
-            self.lworkcit_widget.ui.fgdc_lworkcit.deleteLater()
-            self.ui.lworkcite_ext.layout().addWidget(self.lworkcit_widget)
+            # self.lworkcit_widget.ui.fgdc_lworkcit.hide()
+            self.ui.lworkcite_widget.layout().addWidget(self.lworkcit_widget)
         else:
-            self.lworkcit_widget = None
-        self.ui.lworkcite_ext.hide()
+            self.ui.fgdc_lworkcit.hide()
+        self.include_lworkext_change(self.ui.radio_lworkyes.isChecked())
 
         self.ui.series_ext.hide()
         self.ui.pub_ext.hide()
-        self.ui.fgdc_pubdate = SingleDate(label='', show_format=False)
-        self.ui.pubdate_layout.addWidget(self.ui.fgdc_pubdate)
+        self.ui.pubdate_widget = SingleDate(label='YYYMMDD  ', show_format=False)
+        self.ui.pubdate_layout.addWidget(self.ui.pubdate_widget)
 
         self.onlink_list = RepeatingElement(add_text='Add online link',
                                             remove_text='Remove last',
@@ -165,9 +165,9 @@ class Citation(WizardWidget): #
         None
         """
         if b:
-            self.ui.lworkcite_ext.show()
+            self.ui.lworkcite_widget.show()
         else:
-            self.ui.lworkcite_ext.hide()
+            self.ui.lworkcite_widget.hide()
 
 
     def dragEnterEvent(self, e):
@@ -211,7 +211,7 @@ class Citation(WizardWidget): #
                                parent_node=citeinfo)
 
         pubdate = xml_utils.xml_node("pubdate",
-                                     text=self.ui.fgdc_pubdate.get_date(),
+                                     text=self.ui.pubdate_widget.get_date(),
                                      parent_node=citeinfo)
         title = xml_utils.xml_node("title", self.ui.fgdc_title.text(),
                                    parent_node=citeinfo)
@@ -270,7 +270,7 @@ class Citation(WizardWidget): #
             else:
                 self.fgdc_origin.add_another()
 
-            utils.populate_widget_element(self.ui.fgdc_pubdate.ui.lineEdit,
+            utils.populate_widget_element(self.ui.pubdate_widget.ui.lineEdit,
                                           citeinfo, 'pubdate')
             utils.populate_widget_element(self.ui.fgdc_title, citeinfo, 'title')
 
