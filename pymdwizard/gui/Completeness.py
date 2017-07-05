@@ -60,7 +60,7 @@ from pymdwizard.gui.ui_files import UI_Completeness #
 class Completeness(WizardWidget): #
 
     drag_label = "Completeness <complete>"
-
+    acceptable_tags = ['abstract']
 
     def build_ui(self):
         """
@@ -94,7 +94,7 @@ class Completeness(WizardWidget): #
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'complete':
+            if element is not None and element.tag == 'complete':
                 e.accept()
         else:
             e.ignore()

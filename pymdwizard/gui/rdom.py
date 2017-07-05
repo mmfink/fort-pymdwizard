@@ -50,6 +50,7 @@ from pymdwizard.gui.ui_files import UI_rdom
 class Rdom(WizardWidget):  #
 
     drag_label = "Range Domain <rdom>"
+    acceptable_tags = ['rdom']
 
     def build_ui(self):
         """
@@ -58,28 +59,9 @@ class Rdom(WizardWidget):  #
         -------
         None
         """
-        self.ui = UI_rdom.Ui_fgdc_rdom() # .Ui_USGSContactInfoWidgetMain()
+        self.ui = UI_rdom.Ui_fgdc_attrdomv()
         self.ui.setupUi(self)
         self.setup_dragdrop(self)
-
-    def dragEnterEvent(self, e):
-        """
-        Only accept Dragged items that can be converted to an xml object with
-        a root tag called 'timeperd'
-        Parameters
-        ----------
-        e : qt event
-        Returns
-        -------
-        """
-        mime_data = e.mimeData()
-        if e.mimeData().hasFormat('text/plain'):
-            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-            element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'rdom':
-                e.accept()
-        else:
-            e.ignore()
 
     def _to_xml(self):
         """
@@ -91,8 +73,16 @@ class Rdom(WizardWidget):  #
         rdom = xml_utils.xml_node('rdom')
         rdommin = xml_utils.xml_node('rdommin', text=self.ui.fgdc_rdommin.text(), parent_node=rdom)
         rdommax = xml_utils.xml_node('rdommax', text=self.ui.fgdc_rdommax.text(), parent_node=rdom)
-        attrunit= xml_utils.xml_node('attrunit', text=self.ui.fgdc_attrunit.text(), parent_node=rdom)
-        attrmres= xml_utils.xml_node('attrmres', text=self.ui.fgdc_attrmres.text(), parent_node=rdom)
+
+        if self.ui.fgdc_attrunit.text():
+            attrunit= xml_utils.xml_node('attrunit',
+                                         text=self.ui.fgdc_attrunit.text(),
+                                         parent_node=rdom)
+
+        if self.ui.fgdc_attrmres.text():
+            attrmres= xml_utils.xml_node('attrmres',
+                                         text=self.ui.fgdc_attrmres.text(),
+                                         parent_node=rdom)
 
         return rdom
 

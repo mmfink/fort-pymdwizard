@@ -55,14 +55,14 @@ from pymdwizard.core import xml_utils
 
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_ProcessStep
-from pymdwizard.gui.single_date import SingleDate
+from pymdwizard.gui.fgdc_date import FGDCDate
 from pymdwizard.gui.proccont import ProcessContact
 
 
 class ProcessStep(WizardWidget): #
 
     drag_label = "Process Step <procstep>"
-
+    acceptable_tags = ['procstep']
 
     def build_ui(self):
         """
@@ -76,44 +76,20 @@ class ProcessStep(WizardWidget): #
         self.ui.setupUi(self)
         self.setup_dragdrop(self)
 
-        self.single_date = SingleDate()
-        self.single_date.ui.lbl_format.deleteLater()
-        self.single_date.ui.label.deleteLater()
+        self.single_date = FGDCDate(show_format=False, required=True, label='', fgdc_name='fgdc_procdate')
 
         self.proccont = ProcessContact()
 
         self.ui.fgdc_procdate.setLayout(QVBoxLayout(self))
         self.ui.fgdc_procdate.layout().insertWidget(0, self.single_date)
-        self.ui.frame_proccont.layout().insertWidget(0, self.proccont)
+        self.ui.widget_proccont.layout().insertWidget(0, self.proccont)
 
+        self.clear_widget()
 
+    def clear_widget(self):
+        super(self.__class__, self).clear_widget()
+        self.proccont.ui.rbtn_no.setChecked(True)
 
-    def dragEnterEvent(self, e):
-        """
-        Only accept Dragged items that can be converted to an xml object with
-        a root tag called 'procstep'
-        Parameters
-        ----------
-        e : qt event
-
-        Returns
-        -------
-        None
-
-        """
-        print("pc drag enter")
-        mime_data = e.mimeData()
-        if e.mimeData().hasFormat('text/plain'):
-            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-            element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'procstep':
-                e.accept()
-        else:
-            e.ignore()
-
-
-         
-                
     def _to_xml(self):
         """
         encapsulates the QPlainTextEdit text in an element tag
@@ -127,20 +103,20 @@ class ProcessStep(WizardWidget): #
         procdesc.text = self.findChild(QPlainTextEdit, "fgdc_procdesc").toPlainText()
         procstep.append(procdesc)
 
+        srcused = etree.Element('srcused')
+        srcused.text = self.findChild(QLineEdit, "fgdc_srcused").text()
+        if len(srcused.text):
+            procstep.append(srcused)
+
         procdate = etree.Element('procdate')
-        date_var = self.single_date.findChild(QLineEdit, "lineEdit").text()
+        date_var = self.single_date.findChild(QLineEdit, "fgdc_procdate").text()
         procdate.text = date_var
         procstep.append(procdate)
 
-        srcused = etree.Element('srcused')
-        srcused_var = self.findChild(QLineEdit, "fgdc_srcused").text()
-        srcused.text = srcused_var
-        procstep.append(srcused)
-
         srcprod = etree.Element('srcprod')
-        srcprod_var = self.findChild(QLineEdit, "fgdc_srcprod").text()
-        srcprod.text = srcprod_var
-        procstep.append(srcprod)
+        srcprod.text = self.findChild(QLineEdit, "fgdc_srcprod").text()
+        if len(srcprod.text):
+            procstep.append(srcprod)
 
         if self.proccont.ui.rbtn_yes.isChecked():
             proccont = self.proccont._to_xml()

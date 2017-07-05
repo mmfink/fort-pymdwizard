@@ -47,7 +47,7 @@ from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
 from PyQt5.QtGui import QMouseEvent, QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QMessageBox
 from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QComboBox, QTableView, QRadioButton
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QDialog
 from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint
 
@@ -59,7 +59,9 @@ from pymdwizard.gui import ThesaurusSearch
 from pymdwizard.gui.ui_files import UI_ThemeKeywords
 
 class ThemeKeywords(WizardWidget):
+
     drag_label = "Theme Keywords <theme>"
+    acceptable_tags = ['abstract']
     ui_class = UI_ThemeKeywords.Ui_theme_keywords
 
     def build_ui(self):
@@ -101,11 +103,20 @@ class ThemeKeywords(WizardWidget):
         -------
         None
         """
-        self.thesaurus_search = ThesaurusSearch.ThesaurusSearch(add_term_function=self.add_keyword)
+        self.thesaurus_search = ThesaurusSearch.ThesaurusSearch(add_term_function=self.add_keyword, parent=self)
+        #
+        # self.thesaurus_search.setWindowTitle('Theme Keyword Thesaurus Search')
+        #
+        # fg = self.frameGeometry()
+        # self.thesaurus_search.move(fg.topRight() - QPoint(150, -25))
+        #
+        # self.thesaurus_search.show()
 
-        fg = self.frameGeometry()
-        self.thesaurus_search.move(fg.topRight() - QPoint(150, -25))
-        self.thesaurus_search.show()
+        self.search_dialog = QDialog(self)
+        self.search_dialog.setWindowTitle('Theme Keyword Thesaurus Search')
+        self.search_dialog.setLayout(self.thesaurus_search.layout())
+
+        self.search_dialog.exec_()
 
     def browse_iso(self):
         self.iso_browse = ThesaurusSearch.ThesaurusSearch(add_term_function=self.add_keyword)
@@ -200,7 +211,7 @@ class ThemeKeywords(WizardWidget):
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'keywords' or element.tag == 'theme':
+            if element is not None and element.tag == 'keywords' or element.tag == 'theme':
                 e.accept()
         else:
             e.ignore()

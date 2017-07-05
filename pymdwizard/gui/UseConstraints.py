@@ -60,7 +60,7 @@ from pymdwizard.gui.ui_files import UI_UseConstraints #
 class UseConstraints(WizardWidget): #
 
     drag_label = "Use Constraints <useconst>"
-
+    acceptable_tags = ['abstract']
 
     def build_ui(self):
         """
@@ -94,7 +94,7 @@ class UseConstraints(WizardWidget): #
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'useconst':
+            if element is not None and element.tag == 'useconst':
                 e.accept()
         else:
             e.ignore()
@@ -130,11 +130,13 @@ class UseConstraints(WizardWidget): #
         try:
             if use_constraints.tag == 'useconst':
                 accost_box = self.findChild(QPlainTextEdit, "fgdc_useconst")
-                accost_box.setPlainText(use_constraints.text)
+                useconst_str = xml_utils.get_text_content(use_constraints)
+                accost_box.setPlainText(useconst_str)
+                return True
             else:
-                print ("The tag is not useconst")
+                return False
         except KeyError:
-            pass
+            return False
 
 
 if __name__ == "__main__":

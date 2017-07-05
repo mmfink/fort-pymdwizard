@@ -1,41 +1,34 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-import sys
-import datetime
-
-from lxml import etree
 import pandas as pd
 
 
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QTableView, QTextEdit
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QToolButton
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint
-from PyQt5.QtCore import Qt, QMimeData, QObject, QTimeLine
-
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, QEvent, QCoreApplication
-from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QWidget, QMessageBox
+from PyQt5.QtCore import Qt
 
 from pymdwizard.core import taxonomy
 from pymdwizard.core import utils
 
-from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_ITISSearch
 
 
-class ItisMainForm(WizardWidget):
+class ItisMainForm(QWidget):
 
     drag_label = "Taxonomy"
+    acceptable_tags = ['abstract']
 
-    def __init__(self, parent=None):
-        # QtGui.QMainWindow.__init__(self, parent)
-        super(self.__class__, self).__init__()
+    def __init__(self, xml=None, fgdc_function=None,  parent=None):
+        QWidget.__init__(self, parent=parent)
+        self.build_ui()
+        self.connect_events()
 
         self.selected_items_df = pd.DataFrame(columns=['item', 'tsn'])
         self.selected_model = utils.PandasModel(self.selected_items_df)
         self.ui.table_include.setModel(self.selected_model)
+
+        self._from_xml(xml)
+        self.fgdc_function = fgdc_function
 
     def build_ui(self):
         """
@@ -48,7 +41,7 @@ class ItisMainForm(WizardWidget):
         self.ui = UI_ITISSearch.Ui_ItisSearchWidget()
         self.ui.setupUi(self)
         self.ui.splitter.setSizes([300, 100])
-        self.setup_dragdrop(self)
+        utils.set_window_icon(self)
 
     def connect_events(self):
         """
@@ -69,6 +62,7 @@ class ItisMainForm(WizardWidget):
 
     def search_itis(self):
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if str(self.ui.combo_search_type.currentText()) == 'Scientific name':
             results = taxonomy.search_by_scientific_name(str(self.ui.search_term.text()))
         else:
@@ -76,27 +70,44 @@ class ItisMainForm(WizardWidget):
 
         model = utils.PandasModel(results)
         self.ui.table_results.setModel(model)
+        QApplication.restoreOverrideCursor()
 
     def add_tsn(self, index):
-        indexes = self.ui.table_results.selectionModel().selectedRows()
-        selected_indices = [int(index.row()) for index in list(indexes)]
-        df = self.ui.table_results.model().dataframe()
-        indexes = df.index[selected_indices]
+        try:
+            indexes = self.ui.table_results.selectionModel().selectedRows()
+            selected_indices = [int(index.row()) for index in list(indexes)]
+            df = self.ui.table_results.model().dataframe()
+            indexes = df.index[selected_indices]
 
-        index = selected_indices[0]
+            if df.shape[0] == 1:
+                index = 0
+            elif selected_indices:
+                index = selected_indices[0]
+            else:
+                return
 
-        if 'combinedName' in df.columns:
-            item_name = df.iloc[index]['combinedName']
-        else:
-            item_name = str(df.iloc[index]['commonName'])
+            if 'combinedName' in df.columns:
+                item_name = df.iloc[index]['combinedName']
+            else:
+                try:
+                    item_name = str(df.iloc[index]['commonName'])
+                except KeyError:
+                    msg = "Error, No taxon was selected in the Search Results table!"
+                    msg += '\nMake sure the ITIS search returned results and select one before clicking Add Selection. '
+                    QMessageBox.information(self, "Problem adding tason", msg)
 
-        tsn = df.iloc[index]['tsn']
-        i = self.selected_items_df.index.max()+1
-        if pd.isnull(i):
-            i = 0
-        self.selected_items_df.loc[i] = [str(item_name), tsn]
-        self.selected_model = utils.PandasModel(self.selected_items_df)
-        self.ui.table_include.setModel(self.selected_model)
+                    return None
+
+            tsn = df.iloc[index]['tsn']
+            i = self.selected_items_df.index.max()+1
+            if pd.isnull(i):
+                i = 0
+            self.selected_items_df.loc[i] = [str(item_name), tsn]
+            self.selected_model = utils.PandasModel(self.selected_items_df)
+            self.ui.table_include.setModel(self.selected_model)
+        except AttributeError:
+            pass
+
 
     def remove_selected(self, index):
         indexes = self.ui.table_include.selectionModel().selectedRows()
@@ -106,35 +117,27 @@ class ItisMainForm(WizardWidget):
         self.ui.table_include.model().layoutChanged.emit()
 
     def generate_fgdc(self):
-        self.w = MyPopup()
-        self.w.setWindowTitle('FGDC Taxonomy Section')
-        self.w.setGeometry(QRect(100, 100, 400, 200))
-
-        fgdc_taxonomy = self._to_xml()
-
-        self.w.textEdit.setText(etree.tostring(fgdc_taxonomy, pretty_print=True).decode())
-        self.w.show()
-
-    def dragEnterEvent(self, e):
         """
+        Generates a FGDC taxonomy section from the content currently in the
+        to_include data frame.
 
-        Parameters
-        ----------
-        e : qt event
-
+        This function then passes the resulting XML to the fgdc_function
+        and closes()
         Returns
         -------
-
+        None
         """
-        print("pc drag enter")
-        mime_data = e.mimeData()
-        if e.mimeData().hasFormat('text/plain'):
-            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-            element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'taxonomy':
-                e.accept()
-        else:
-            e.ignore()
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        fgdc_taxonomy = self._to_xml()
+        self.fgdc_function(fgdc_taxonomy)
+        QApplication.restoreOverrideCursor()
+
+        msg = "A taxonomy section has been created and added below"
+        QMessageBox.information(self, "Taxonomy created", msg)
+
+        self.close()
+
 
     def _to_xml(self):
 
@@ -148,29 +151,18 @@ class ItisMainForm(WizardWidget):
         return fgdc_taxonomy
 
     def _from_xml(self, taxonomy_element):
-        i = 0
-        for common_node in taxonomy_element.findall('.//common'):
-            if common_node.text.startswith('TSN: '):
-                tsn = common_node.text[5:]
-                scientific_name = taxonomy.get_full_record_from_tsn(tsn)['scientificName']['combinedName']
-                self.selected_items_df.loc[i] = [scientific_name, tsn]
-                i += 1
 
-        self.selected_model = utils.PandasModel(self.selected_items_df)
-        self.ui.table_include.setModel(self.selected_model)
+        if taxonomy_element is not None:
+            i = 0
+            for common_node in taxonomy_element.findall('.//common'):
+                if common_node.text.startswith('TSN: '):
+                    tsn = common_node.text[5:]
+                    scientific_name = taxonomy.get_full_record_from_tsn(tsn)['scientificName']['combinedName']
+                    self.selected_items_df.loc[i] = [scientific_name, tsn]
+                    i += 1
 
-
-class MyPopup(QWidget):
-    def __init__(self):
-        QWidget.__init__(self)
-        layout = QVBoxLayout()
-
-
-        self.textEdit = QTextEdit()
-
-        layout.addWidget(self.textEdit)
-
-        self.setLayout(layout)
+            self.selected_model = utils.PandasModel(self.selected_items_df)
+            self.ui.table_include.setModel(self.selected_model)
 
 
 

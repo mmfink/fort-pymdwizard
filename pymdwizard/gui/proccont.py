@@ -63,7 +63,7 @@ class ProcessContact(WizardWidget):
     COLLAPSED_HEIGHT = 75
     EXPANDED_HEIGHT = 310 + COLLAPSED_HEIGHT
     drag_label = "Process Contact <proccont>"
-
+    acceptable_tags = ['abstract']
 
     def build_ui(self):
         """
@@ -121,7 +121,7 @@ class ProcessContact(WizardWidget):
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'proccont' or element.tag == 'cntinfo':
+            if element is not None and element.tag == 'proccont' or element.tag == 'cntinfo':
                 e.accept()
         else:
             e.ignore()
@@ -145,6 +145,7 @@ class ProcessContact(WizardWidget):
             cntinfo_node = contact_information
         else:
             cntinfo_node = contact_information.xpath('cntinfo')[0]
+
         self.cntinfo._from_xml(cntinfo_node)
 
 

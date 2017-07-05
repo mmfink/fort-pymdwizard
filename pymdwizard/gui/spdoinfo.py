@@ -60,7 +60,7 @@ from pymdwizard.gui.ui_files import UI_spdoinfo
 class SpdoInfo(WizardWidget):
 
     drag_label = "Spatial Domain Info <spdoinfo>"
-
+    acceptable_tags = ['abstract']
 
     def build_ui(self):
         """
@@ -73,6 +73,7 @@ class SpdoInfo(WizardWidget):
         self.ui = UI_spdoinfo.Ui_spatial_domain_widget()
         self.ui.setupUi(self)
         self.setup_dragdrop(self)
+        self.clear_widget()
 
     def connect_events(self):
         """
@@ -113,10 +114,24 @@ class SpdoInfo(WizardWidget):
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'spdoinfo':
+            if element is not None and element.tag == 'spdoinfo':
                 e.accept()
         else:
             e.ignore()
+
+    def has_content(self):
+        """
+        Returns if the widget contains legitimate content that should be
+        written out to xml
+
+        By default this is always true but should be implement in each
+        subclass with logic to check based on contents
+
+        Returns
+        -------
+        bool : True if there is content, False if no
+        """
+        return self.ui.rbtn_yes.isChecked()
 
     def clear_widget(self):
         """
@@ -135,6 +150,9 @@ class SpdoInfo(WizardWidget):
         self.ui.fgdc_rasttype.setCurrentIndex(0)
         self.ui.fgdc_direct.setCurrentIndex(2)
 
+        self.ui.rbtn_no.setChecked(True)
+        self.spdoinfo_used_change(False)
+
     def _to_xml(self):
         if self.ui.rbtn_yes.isChecked():
             spdoinfo = xml_utils.xml_node('spdoinfo')
@@ -142,7 +160,7 @@ class SpdoInfo(WizardWidget):
                                         parent_node=spdoinfo)
             if self.ui.fgdc_direct.currentText() == 'Raster':
                 rastinfo = xml_utils.xml_node('rastinfo', parent_node=spdoinfo)
-                rasttype = xml_utils.xml_node('rasttype', text=self.ui.fgdc_rasttype, parent_node=rastinfo)
+                rasttype = xml_utils.xml_node('rasttype', text=self.ui.fgdc_rasttype.currentText(), parent_node=rastinfo)
 
                 rowcount_str = self.ui.fgdc_rowcount.text()
                 colcount_str = self.ui.fgdc_colcount.text()
@@ -175,12 +193,16 @@ class SpdoInfo(WizardWidget):
             self.ui.rbtn_yes.setChecked(True)
 
             direct = xml_utils.get_text_content(spdoinfo, 'direct')
-            if 'raster' in direct.lower():
-                self.ui.fgdc_direct.setCurrentIndex(2)
-            elif 'point' in direct.lower():
-                self.ui.fgdc_direct.setCurrentIndex(0)
-            elif 'vector' in direct.lower():
-                self.ui.fgdc_direct.setCurrentIndex(1)
+            if direct is not None:
+                if 'raster' in direct.lower():
+                    self.ui.fgdc_direct.setCurrentIndex(0)
+                    self.ui.fgdc_direct.setCurrentIndex(2)
+                elif 'point' in direct.lower():
+                    self.ui.fgdc_direct.setCurrentIndex(2)
+                    self.ui.fgdc_direct.setCurrentIndex(0)
+                elif 'vector' in direct.lower():
+                    self.ui.fgdc_direct.setCurrentIndex(0)
+                    self.ui.fgdc_direct.setCurrentIndex(1)
 
             rasttype = xml_utils.get_text_content(spdoinfo, 'rastinfo/rastype')
             if rasttype is not None:

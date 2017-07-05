@@ -59,8 +59,9 @@ from pymdwizard.gui.ui_files import UI_ContactInfo
 from pymdwizard.gui.ui_files import UI_USGSContactImporter
 
 class ContactInfo(WizardWidget):
-    xpath_root = "cntinfo"
+
     drag_label = "Contact Information <cntinfo>"
+    acceptable_tags = ['ptcontac', 'cntinfo']
 
     ui_class = UI_ContactInfo.Ui_USGSContactInfoWidget
 
@@ -73,15 +74,16 @@ class ContactInfo(WizardWidget):
         None
         """
         self.ui.btn_import_contact.clicked.connect(self.find_usgs_contact)
+        self.per_or_org = self.ui.fgdc_cntperp
         self.ui.rbtn_perp.toggled.connect(self.switch_primary)
 
     def find_usgs_contact(self):
-        self.usgs_contact = QDialog(self)
+        self.usgs_contact = QDialog(parent=self)
         self.usgs_contact_ui = UI_USGSContactImporter.Ui_ImportUsgsUser()
         self.usgs_contact_ui.setupUi(self.usgs_contact)
         self.usgs_contact_ui.btn_OK.clicked.connect(self.add_contact)
         self.usgs_contact_ui.btn_cancel.clicked.connect(self.cancel)
-
+        utils.set_window_icon(self.usgs_contact)
         self.usgs_contact.show()
 
     def add_contact(self):
@@ -89,18 +91,33 @@ class ContactInfo(WizardWidget):
         # strip off the @usgs.gov if they entered one
         username = username.split("@")[0]
 
-        cntperp = utils.get_usgs_contact_info(username,
-                                              as_dictionary=False)
-        if cntperp.getchildren()[0].getchildren()[0].text.strip():
-            self._from_xml(cntperp)
-            self.usgs_contact.deleteLater()
-        else:
-            msg = QMessageBox()
+        if not username:
+            return
+
+        try:
+            cntperp = utils.get_usgs_contact_info(username,
+                                                  as_dictionary=False)
+            if cntperp.getchildren()[0].getchildren()[0].text.strip():
+                self._from_xml(cntperp)
+                self.usgs_contact.deleteLater()
+            else:
+                msg = QMessageBox(self)
+                utils.set_window_icon(msg)
+                msg.setIcon(QMessageBox.Information)
+                msg.setText("'{}' Not Found".format(username))
+                msg.setInformativeText("The Metadata Wizard was unable to locate the provided user name in the USGS directory")
+                msg.setWindowTitle("Name Not Found")
+                msg.setStandardButtons(QMessageBox.Ok)
+                msg.exec_()
+        except:
+            msg_text = "Make sure there is a working Internet connection or try again latter."
+            msg = QMessageBox(self)
+            utils.set_window_icon(msg)
             msg.setIcon(QMessageBox.Information)
-            msg.setText("'{}' Not Found".format(username))
-            msg.setInformativeText("The Metadata Wizard was unable to locate the provided user name in the USGS directory")
-            msg.setWindowTitle("Name Not Found")
-            msg.setStandardButtons(QMessageBox.Retry)
+            msg.setText("Issue encountered while searching contact information.")
+            msg.setInformativeText(msg_text)
+            msg.setWindowTitle("Problem encountered")
+            msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
 
     def cancel(self):
@@ -115,36 +132,15 @@ class ContactInfo(WizardWidget):
         None
         """
         if self.ui.rbtn_perp.isChecked():
-            self.ui.left_vertical_layout.insertWidget(0, self.ui.lbl_cntper)
+            self.per_or_org.layout().insertWidget(0, self.ui.lbl_cntper)
             self.ui.required_horizontal_layout.insertWidget(0, self.ui.fgdc_cntper)
-            self.ui.left_vertical_layout.insertWidget(2, self.ui.lbl_cntorg)
+            self.per_or_org.layout().insertWidget(2, self.ui.lbl_cntorg)
             self.ui.optional_horizontal_layout.insertWidget(0, self.ui.fgdc_cntorg)
         else:
-            self.ui.left_vertical_layout.insertWidget(0, self.ui.lbl_cntorg)
+            self.per_or_org.layout().insertWidget(0, self.ui.lbl_cntorg)
             self.ui.required_horizontal_layout.insertWidget(0, self.ui.fgdc_cntorg)
-            self.ui.left_vertical_layout.insertWidget(2, self.ui.lbl_cntper)
+            self.per_or_org.layout().insertWidget(2, self.ui.lbl_cntper)
             self.ui.optional_horizontal_layout.insertWidget(0, self.ui.fgdc_cntper)
-
-    def dragEnterEvent(self, e):
-        """
-
-        Parameters
-        ----------
-        e : qt event
-
-        Returns
-        -------
-
-        """
-        print("cinfo drag enter")
-        mime_data = e.mimeData()
-        if e.mimeData().hasFormat('text/plain'):
-            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-            element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'ptcontac' or element.tag == 'cntinfo':
-                e.accept()
-        else:
-            e.ignore()
 
     def _to_xml(self):
 
@@ -207,6 +203,9 @@ class ContactInfo(WizardWidget):
         return cntinfo
 
     def _from_xml(self, contact_information):
+
+        self.clear_widget()
+
         contact_dict = xml_utils.node_to_dict(contact_information)
         utils.populate_widget(self, contact_dict)
 

@@ -59,9 +59,10 @@ from pymdwizard.gui.SRCInfo import SRCInfo
 from pymdwizard.gui.repeating_element import RepeatingElement
 
 
-class SourceInput(WizardWidget): #
+class SourceInput(WizardWidget):
 
     drag_label = "Source Information <srcinfo>"
+    acceptable_tags = ['abstract']
 
     def build_ui(self):
         """
@@ -71,7 +72,7 @@ class SourceInput(WizardWidget): #
         -------
         None
         """
-        self.ui = UI_sourceinput.Ui_Form()#.Ui_USGSContactInfoWidgetMain()
+        self.ui = UI_sourceinput.Ui_Form()
         self.ui.setupUi(self)
         self.setup_dragdrop(self)
 
@@ -129,12 +130,14 @@ class SourceInput(WizardWidget): #
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'lineage':
+            if element is not None and element.tag == 'lineage':
                 e.accept()
         else:
             e.ignore()
 
-
+    def clear_widget(self):
+        self.ui.radio_sourceno_2.setChecked(True)
+        WizardWidget.clear_widget(self)
          
 
     def _to_xml(self):
@@ -175,17 +178,17 @@ class SourceInput(WizardWidget): #
         """
         try:
             if xml_srcinput.tag == 'lineage':
-                self.src_info.clear_widgets()
+                self.src_info.clear_widgets(add_another=False)
                 self.ui.frame_sourceinfo.show()
                 self.ui.radio_sourceyes.setChecked(True)
                 xml_srcinput = xml_srcinput.findall('srcinfo')
                 if xml_srcinput:
                     for srcinput in xml_srcinput:
-                        print srcinput.tag
                         srcinfo_widget = self.src_info.add_another()
                         srcinfo_widget._from_xml(srcinput)
-                        #self.citation._from_xml(srccite.xpath('citeinfo')[0])
+
                 else:
+                    self.ui.radio_sourceno_2.setChecked(True)
                     self.src_info.add_another()
         except KeyError:
             pass

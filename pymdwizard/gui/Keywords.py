@@ -54,13 +54,14 @@ from pymdwizard.core import xml_utils
 
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_Keywords
-from pymdwizard.gui.ThemeKeywords import ThemeKeywords
-from pymdwizard.gui.PlaceKeywords import PlaceKeywords
+from pymdwizard.gui.theme_list import ThemeList
+from pymdwizard.gui.place_list import PlaceList
 
 
 class Keywords(WizardWidget):
 
     drag_label = "Keywords <keywords>"
+    acceptable_tags = ['keywords', 'theme']
 
     ui_class = UI_Keywords.Ui_keyword_widget
 
@@ -75,43 +76,19 @@ class Keywords(WizardWidget):
         self.ui = self.ui_class()
         self.ui.setupUi(self)
 
+        self.theme_list = ThemeList(parent=self)
+        self.ui.fgdc_keywords.layout().addWidget(self.theme_list)
 
-
-        self.theme = ThemeKeywords()
-        self.ui.fgdc_keywords.layout().addWidget(self.theme)
-
-        self.place = PlaceKeywords()
-        self.ui.fgdc_keywords.layout().addWidget(self.place)
+        self.place_list = PlaceList(parent=self)
+        self.ui.fgdc_keywords.layout().addWidget(self.place_list)
 
         spacerItem = QSpacerItem(24, 10, QSizePolicy.Preferred, QSizePolicy.Expanding)
         self.ui.fgdc_keywords.layout().addItem(spacerItem)
         self.setup_dragdrop(self)
 
-    def dragEnterEvent(self, e):
-        """
-
-        Parameters
-        ----------
-        e : qt event
-
-        Returns
-        -------
-
-        """
-        print("pc drag enter")
-        mime_data = e.mimeData()
-        if e.mimeData().hasFormat('text/plain'):
-            parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
-            element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'Keywords' or element.tag == 'theme' or \
-                            element.tag == 'place':
-                e.accept()
-        else:
-            e.ignore()
-
     def _to_xml(self):
-        keywords = self.theme._to_xml()
-        place_keywords = self.place._to_xml()
+        keywords = self.theme_list._to_xml()
+        place_keywords = self.place_list._to_xml()
         for child_node in place_keywords.xpath('place'):
             keywords.append(child_node)
 
@@ -119,8 +96,8 @@ class Keywords(WizardWidget):
 
     def _from_xml(self, keywords):
 
-        self.theme._from_xml(keywords)
-        self.place._from_xml(keywords)
+        self.theme_list._from_xml(keywords)
+        self.place_list._from_xml(keywords)
 
 
 if __name__ == "__main__":

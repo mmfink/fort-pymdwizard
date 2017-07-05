@@ -64,6 +64,7 @@ from pymdwizard.gui import spdom
 class SpatialTab(WizardWidget):
 
     drag_label = "Spatial org and Spatial Ref <...>"
+    acceptable_tags = ['abstract']
 
     ui_class = UI_spatial_tab.Ui_spatial_tab
 
@@ -89,6 +90,7 @@ class SpatialTab(WizardWidget):
         self.ui.two_column_right.layout().insertWidget(0, self.spdoinfo)
 
         self.ui.btn_browse.clicked.connect(self.browse)
+        self.clear_widget()
 
     def browse(self):
         settings = QSettings('USGS', 'pymdwizard')
@@ -98,26 +100,32 @@ class SpatialTab(WizardWidget):
         else:
             fname, dname = "", ""
 
-        fname = QFileDialog.getOpenFileName(self, fname, dname)
+        fname = QFileDialog.getOpenFileName(self, fname, dname,
+                                            # Image Files (*.png *.jpg *.bmp)
+                                            filter="Spatial files (*.shp *.tif *.jpg *.bmp *.img *.jp2 *.png *.grd)")
         if fname[0]:
             settings.setValue('lastDataFname', fname[0])
             self.populate_from_fname(fname[0])
 
     def populate_from_fname(self, fname):
 
-        layer = spatial_utils.get_layer(fname)
-        params = spatial_utils.get_params(layer)
-        geo = spatial_utils.geographic(params)
-        self.spref._from_xml(geo)
+        try:
+            spdom = spatial_utils.get_bounding(fname)
+            self.spdom._from_xml(spdom)
+        except:
+            self.spdom.clear_widget()
 
-        spdom = spatial_utils.get_bounding(fname)
-        self.spdom._from_xml(spdom)
+        try:
+            spdoinfo = spatial_utils.get_spdoinfo(fname)
+            self.spdoinfo._from_xml(spdoinfo)
+        except:
+            self.spdoinfo.clear_widget()
 
-        spdoinfo = spatial_utils.get_spdoinfo(fname)
-        self.spdoinfo._from_xml(spdoinfo)
-
-
-
+        try:
+            spref = spatial_utils.get_spref(fname)
+            self.spref._from_xml(spref)
+        except:
+            self.spref.clear_widget()
 
     def dragEnterEvent(self, e):
         """
@@ -135,7 +143,7 @@ class SpatialTab(WizardWidget):
         if e.mimeData().hasFormat('text/plain'):
             parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
             element = etree.fromstring(mime_data.text(), parser=parser)
-            if element.tag == 'idinfo':
+            if element is not None and element.tag == 'idinfo':
                 e.accept()
         else:
             e.ignore()
@@ -143,39 +151,28 @@ class SpatialTab(WizardWidget):
     def switch_schema(self, schema):
         self.spdom.switch_schema(schema)
 
+
+    def clear_widget(self):
+        self.spdoinfo.clear_widget()
+        self.spdom.clear_widget()
+        self.spref.clear_widget()
+
     def _to_xml(self):
-        pass
+        # since this tab is composed of content from three disparate sections
+        # the to and from xml functions are being handled
+        # by the parent widget (MetadataRoot)
+        return self.spdom._to_xml()
 
-    def _from_xml(self, xml_idinfo):
-        try:
-            ptcontac = xml_idinfo.xpath('ptcontac')[0]
-            self.ptcontac._from_xml(ptcontac)
-        except IndexError:
-            pass
-
-        try:
-            keywords = xml_idinfo.xpath('keywords')[0]
-            self.keywords._from_xml(keywords)
-        except IndexError:
-            pass
-
-        try:
-            citation = xml_idinfo.xpath('citation')[0]
-            self.citation._from_xml(citation)
-        except IndexError:
-            pass
-
-        try:
-            timeperd = xml_idinfo.xpath('timeperd')[0]
-            self.timeperd._from_xml(timeperd)
-        except IndexError:
-            pass
-
-        try:
-            descript = xml_idinfo.xpath('descript')[0]
-            self.descript._from_xml(descript)
-        except IndexError:
-            pass
+    def _from_xml(self, xml_unknown):
+        # since this tab is composed of content from three disparate sections
+        # the to and from xml functions are being handled
+        # by the parent widget (MetadataRoot)
+        if xml_unknown.tag == 'spdoinfo':
+            self.spdoinfo._from_xml(xml_unknown)
+        elif xml_unknown.tag == 'spref':
+            self.spref._from_xml(xml_unknown)
+        elif xml_unknown.tag == 'spdom':
+            self.spdom._from_xml(xml_unknown)
 
 if __name__ == "__main__":
     utils.launch_widget(SpatialTab, "IdInfo testing")

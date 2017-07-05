@@ -8,19 +8,19 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-class Ui_Form(object):
-    def setupUi(self, Form):
-        Form.setObjectName("Form")
-        Form.resize(1221, 794)
-        self.horizontalLayout = QtWidgets.QHBoxLayout(Form)
+class Ui_fgdc_detailed(object):
+    def setupUi(self, fgdc_detailed):
+        fgdc_detailed.setObjectName("fgdc_detailed")
+        fgdc_detailed.resize(1221, 794)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(fgdc_detailed)
         self.horizontalLayout.setObjectName("horizontalLayout")
-        self.frame = QtWidgets.QFrame(Form)
+        self.frame = QtWidgets.QFrame(fgdc_detailed)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.frame.sizePolicy().hasHeightForWidth())
         self.frame.setSizePolicy(sizePolicy)
-        self.frame.setMaximumSize(QtCore.QSize(140, 16777215))
+        self.frame.setMaximumSize(QtCore.QSize(150, 16777215))
         self.frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.frame.setObjectName("frame")
@@ -59,8 +59,13 @@ class Ui_Form(object):
         spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem)
         self.verticalLayout_2.addWidget(self.fgdc_enttyp)
+        self.btn_remove = QtWidgets.QPushButton(self.frame)
+        self.btn_remove.setStyleSheet("background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 rgba(150, 0, 0, 100), stop:1 rgba(147, 0, 0, 50));\n"
+"")
+        self.btn_remove.setObjectName("btn_remove")
+        self.verticalLayout_2.addWidget(self.btn_remove)
         self.horizontalLayout.addWidget(self.frame)
-        self.attribute_frame = QtWidgets.QFrame(Form)
+        self.attribute_frame = QtWidgets.QFrame(fgdc_detailed)
         self.attribute_frame.setFrameShape(QtWidgets.QFrame.StyledPanel)
         self.attribute_frame.setFrameShadow(QtWidgets.QFrame.Raised)
         self.attribute_frame.setObjectName("attribute_frame")
@@ -91,19 +96,22 @@ class Ui_Form(object):
         self.verticalLayout_3.addWidget(self.label_5)
         self.horizontalLayout.addWidget(self.attribute_frame)
 
-        self.retranslateUi(Form)
-        QtCore.QMetaObject.connectSlotsByName(Form)
+        self.retranslateUi(fgdc_detailed)
+        QtCore.QMetaObject.connectSlotsByName(fgdc_detailed)
 
-    def retranslateUi(self, Form):
+    def retranslateUi(self, fgdc_detailed):
         _translate = QtCore.QCoreApplication.translate
-        Form.setWindowTitle(_translate("Form", "Form"))
-        self.fgdc_enttyp.setTitle(_translate("Form", "Dataset "))
-        self.label.setText(_translate("Form", "If you have access to the dataset click the button to browse to the dataset.  This section will be autopopulated with appropriate content pulled from the dataset."))
-        self.btn_browse.setText(_translate("Form", "Browse to Dataset"))
-        self.label_2.setText(_translate("Form", "Dataset Label"))
-        self.label_3.setText(_translate("Form", "Dataset Description"))
-        self.label_4.setText(_translate("Form", "Definition Sourse"))
-        self.fgdc_enttypds.setText(_translate("Form", "Producer defined"))
-        self.label_5.setToolTip(_translate("Form", "Required"))
-        self.label_5.setText(_translate("Form", "<html><head/><body><p><span style=\" font-style:italic; color:#55aaff;\">These represent the columns in your dataset.  Click below in each one and provide a definition for the column and a description for the column contents.</span></p></body></html>"))
+        fgdc_detailed.setWindowTitle(_translate("fgdc_detailed", "Form"))
+        self.fgdc_enttyp.setTitle(_translate("fgdc_detailed", "Dataset "))
+        self.label.setText(_translate("fgdc_detailed", "If you have access to the dataset being documented in this metadata record browse to it by clicking the button below.\n"
+"\n"
+"This section will be autopopulated with appropriate content pulled from the data (column labels, min/max values, unique lists, etc.)."))
+        self.btn_browse.setText(_translate("fgdc_detailed", "Browse to Dataset"))
+        self.label_2.setText(_translate("fgdc_detailed", "Dataset Label"))
+        self.label_3.setText(_translate("fgdc_detailed", "Dataset Description"))
+        self.label_4.setText(_translate("fgdc_detailed", "Definition Sourse"))
+        self.fgdc_enttypds.setText(_translate("fgdc_detailed", "Producer defined"))
+        self.btn_remove.setText(_translate("fgdc_detailed", "Remove this Detailed"))
+        self.label_5.setToolTip(_translate("fgdc_detailed", "Required"))
+        self.label_5.setText(_translate("fgdc_detailed", "<html><head/><body><p><span style=\" font-style:italic; color:#55aaff;\">These represent the columns in your dataset.  Click below in each one and provide a definition for the column and a description for the column contents.</span></p></body></html>"))
 

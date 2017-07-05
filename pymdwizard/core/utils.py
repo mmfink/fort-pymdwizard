@@ -50,10 +50,10 @@ import requests
 import pandas as pd
 
 from PyQt5.QtWidgets import QLineEdit, QTextEdit, QTextBrowser, QPlainTextEdit
-from PyQt5.QtWidgets import QMainWindow, QApplication
+from PyQt5.QtWidgets import QMainWindow, QApplication, QComboBox
 from PyQt5.QtCore import QAbstractTableModel
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
+from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap, QIcon
 
 from pymdwizard.core import xml_utils
 
@@ -84,6 +84,24 @@ def get_usgs_contact_info(ad_username, as_dictionary=True):
         return xml_utils.node_to_dict(element)
     else:
         return element
+
+
+def get_orcid(ad_username):
+    """
+
+    Parameters
+    ----------
+    ad_username : the AD user name to search for
+
+    Returns
+    -------
+    str : the orcid as a string, if not found returns None
+
+    """
+    try:
+        return get_usgs_contact_info(ad_username)['fgdc_cntperp']['fgdc_orcid']
+    except:
+        return None
 
 
 def populate_widget(widget, contents):
@@ -119,21 +137,40 @@ def populate_widget(widget, contents):
                 except AttributeError:
                     child_widget = None
 
-            try:
-                child_widget.setText(value)
-                child_widget.setCursorPosition(0)
-            except:
-                pass
+            set_text(child_widget, value)
 
-            try:
-                child_widget.setPlainText(value)
-            except:
-                pass
 
-            try:
-                child_widget.set_date(value)
-            except:
-                pass
+def set_text(widget, text):
+    """
+    set the text of a widget regardless of it's base type
+
+    Parameters
+    ----------
+    widget : QtGui:QWidget
+            This widget is a QlineEdit or QPlainText edit
+    text : str
+            The text that will be inserted
+    Returns
+    -------
+    None
+
+    """
+    if isinstance(widget, QLineEdit):
+        widget.setText(text)
+        widget.setCursorPosition(0)
+
+    if isinstance(widget, QPlainTextEdit):
+        widget.setPlainText(text)
+
+    if isinstance(widget, QTextBrowser):
+        widget.setText(text)
+
+    if isinstance(widget, QComboBox):
+        index = widget.findText(text, Qt.MatchFixedString)
+        if index >= 0:
+            widget.setCurrentIndex(index)
+        else:
+            widget.setEditText(text)
 
 
 def populate_widget_element(widget, element, xpath):
@@ -154,10 +191,7 @@ def populate_widget_element(widget, element, xpath):
     """
     if element.xpath(xpath):
         first_child = element.xpath(xpath)[0]
-        try:
-            widget.setText(first_child.text)
-        except:
-            widget.setPlainText(first_child.text)
+        set_text(widget, first_child.text)
 
 
 # Back up the reference to the exceptionhook
@@ -215,6 +249,9 @@ def get_resource_path(fname):
     """
     return pkg_resources.resource_filename('pymdwizard',
                                            'resources/{}'.format(fname))
+def set_window_icon(widget):
+    icon = QIcon(get_resource_path('icons/Ducky.ico'))
+    widget.setWindowIcon(icon)
 
 class PandasModel(QAbstractTableModel):
     """
@@ -331,5 +368,24 @@ def check_fname(fname):
         except:
             return 'not writable file'
 
+
+def get_install_dname(which='pymdwizard'):
+    """
+    get the full path to the installation directory
+    Returns
+    -------
+    str : path and directory name of the directory pymdwizard is in
+    """
+    this_fname = os.path.realpath(__file__)
+    pymdwizard_dname = os.path.dirname(os.path.dirname(os.path.dirname(this_fname)))
+    root_dir = os.path.dirname(pymdwizard_dname)
+    python_dname = os.path.join(root_dir, 'Python35_64')
+
+    if which == 'root':
+        return root_dir
+    elif which == 'pymdwizard':
+        return pymdwizard_dname
+    elif which == 'python':
+        return python_dname
 
 
