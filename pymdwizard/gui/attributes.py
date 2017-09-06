@@ -61,39 +61,34 @@ class Attributes(WizardWidget):  #
         self.main_layout = self.ui.scrollAreaWidgetContents.layout()
 
         self.attrs = []
+        self.displayed_min = 0
+        self.displayed_max = 9
 
-
-        import pandas as pd
-        # df = pd.read_csv(r"C:\Users\talbertc\Downloads\Titanic.csv")
-        # self.load_df(df)
         self.minimize_children()
 
     def load_df(self, df):
         self.clear_children()
 
+        i = 0
         for col_label in df.columns:
             col = df[col_label]
             attr_i = attr.Attr(parent=self)
-            attr_i.ui.fgdc_attrlabl.setText(col_label)
+            attr_i.ui.fgdc_attrlabl.setText(str(col_label))
 
             attr_i.set_series(col)
-            attr_i.guess_domain()
-
+            attr_i.ui.comboBox.setCurrentIndex(attr_i.guess_domain())
             self.append_attr(attr_i)
 
         self.attrs[0].supersize_me()
 
     def append_attr(self, attr):
         self.attrs.append(attr)
-        attr.regularsize_me()
         self.main_layout.insertWidget(len(self.main_layout) - 1, attr)
 
     def load_pickle(self, contents):
         self.clear_children()
 
         for col_label in contents.keys():
-
-            # col = df[col_label]
             attr_i = attr.Attr(parent=self)
             attr_i.ui.fgdc_attrlabl.setText(col_label)
 
@@ -101,18 +96,16 @@ class Attributes(WizardWidget):  #
                 s = pd.Series(contents[col_label][b'contents'])
                 attr_i.set_series(s)
                 attr_i.guess_domain()
-            elif  contents[col_label][b'type'] in ['Integer', 'Single', 'SmallInteger', 'Double', 'Date']:
+            elif contents[col_label][b'type'] in ['Integer', 'Single', 'SmallInteger', 'Double', 'Date']:
                 s = pd.Series(contents[col_label][b'contents'])
                 attr_i.set_series(s)
-                attr_i.guess_domain(force='range')
+                attr_i.ui.comboBox.setCurrentIndex(1)
             else:
-                attr_i.guess_domain(force='unrep')
+                attr_i.ui.comboBox.setCurrentIndex(1)
                 unrep = contents[col_label][b'contents']
 
                 utils.set_text(attr_i.ui.fgdc_attrdef, unrep[0].decode("utf-8"))
                 utils.set_text(attr_i.ui.fgdc_attrdefs, unrep[2].decode("utf-8"))
-                utils.set_text(attr_i.domain.ui.fgdc_udom, unrep[1].decode("utf-8"))
-
             self.append_attr(attr_i)
 
         try:
@@ -124,6 +117,12 @@ class Attributes(WizardWidget):  #
         for attribute in self.attrs:
             attribute.deleteLater()
         self.attrs = []
+
+    def get_attr(self, which):
+        for attr in self.attrs:
+            if attr.ui.fgdc_attrlabl.text() == which:
+                return attr
+        return None
 
     def insert_before(self, this_attr):
         new_attrs = []
@@ -156,8 +155,9 @@ class Attributes(WizardWidget):  #
 
     def minimize_children(self):
         for attr_widget in self.attrs:
-            attr_widget.regularsize_me()
-            attr_widget.ui.fgdc_attrlabl.setCursorPosition(0)
+            if attr_widget.active:
+                attr_widget.regularsize_me()
+                attr_widget.ui.fgdc_attrlabl.setCursorPosition(0)
 
     def contextMenuEvent(self, event):
         self.in_context = True

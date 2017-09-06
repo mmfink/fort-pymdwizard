@@ -42,10 +42,12 @@ responsibility is assumed by the USGS in connection therewith.
 import os
 import collections
 
+import numpy as np
 import pandas as pd
 
 from pymdwizard.core.xml_utils import xml_node
 from pymdwizard.core import utils
+from pymdwizard.core import data_io
 
 try:
     python_root = utils.get_install_dname('python')
@@ -112,15 +114,23 @@ def get_geographic_extent(layer):
     """
     min_x, max_x, min_y, max_y = get_extent(layer)
 
+    x = np.linspace(min_x, max_x, num=10)
+    y = np.linspace(min_y, max_y, num=10)
+
+    edge_points = [(min_x, this_y) for this_y in y] + \
+               [(max_x, this_y) for this_y in y] + \
+               [(this_x, min_y) for this_x in x] + \
+               [(this_x, max_y) for this_x in x]
+
     srs = get_ref(layer)
 
     geographic = osr.SpatialReference()
     geographic.ImportFromEPSG(4326)
 
-    west, north = transform_point(
-        min_x, max_y, srs, geographic)
-    east, south = transform_point(
-        max_x, min_y, srs, geographic)
+    t_points = np.apply_along_axis(transform_point, 1, edge_points,
+                                   from_srs=srs, to_srs=geographic)
+    east, north = t_points.max(0)
+    west, south = t_points.min(0)
 
     return west, east, south, north
 
@@ -273,7 +283,7 @@ def get_params(layer):
     params['latprjo'] = ref.GetProjParm(osr.SRS_PP_LATITUDE_OF_CENTER)
     params['sfctrlin'] = ref.GetProjParm(osr.SRS_PP_SCALE_FACTOR)
     params['obqlazim'] = 'Unknown'
-    params['azimangle'] = ref.GetProjParm(osr.SRS_PP_AZIMUTH)
+    params['azimangl'] = ref.GetProjParm(osr.SRS_PP_AZIMUTH)
     params['azimptl'] = ref.GetProjParm(osr.SRS_PP_LONGITUDE_OF_ORIGIN)
     params['obqlpt'] = 'Unknown'
     params['obqllat'] = 'Unknown'
@@ -339,7 +349,8 @@ def get_params(layer):
     return params
 
 
-def transform_point(x, y, from_srs, to_srs):
+
+def transform_point(xy, from_srs, to_srs):
     """
     Transforms a point from one srs to another
 
@@ -355,8 +366,8 @@ def transform_point(x, y, from_srs, to_srs):
     (x, y) : (float, float)
     """
     coord_xform = osr.CoordinateTransformation(from_srs, to_srs)
-    y_round = round(y, 8)
-    x_round = round(x, 8)
+    y_round = round(xy[1], 8)
+    x_round = round(xy[0], 8)
 
     results = coord_xform.TransformPoint(x_round, y_round)
     return results[0], results[1]
@@ -457,8 +468,12 @@ def mapproj(params):
     mapproj_node = xml_node('mapproj')
 
     fgdc_name, function = lookup_fdgc_projname(params['projection_name'])
+    if fgdc_name is None:
+        fgdc_name = params['projection_name']
+        prj_node = unknown_projection(params)
+    else:
+        prj_node = function(params)
     mapprojn = xml_node('mapprojn', text=fgdc_name, parent_node=mapproj_node)
-    prj_node = function(params)
     mapproj_node.append(prj_node)
     return mapproj_node
 
@@ -594,6 +609,20 @@ def equidistant_conic(params):
         xml_node(item, params[item], equicon)
     return equicon
 
+def unknown_projection(params):
+    mapprojp = xml_node('mapprojp')
+
+    if params['stdparll'] is not 'Unknown':
+        stdparll = xml_node('stdparll', params['stdparll'], mapprojp)
+    if params['stdparll_2'] is not 'Unknown':
+        stdparll_2 = xml_node('stdparll', params['stdparll_2'], mapprojp)
+
+    for k in ['longcm', 'latprjo', 'feast', 'fnorth', 'sfequat', 'heightpt',
+              'longpc', 'latprjc', 'sfctrlin', 'obqlazim', 'azimangl', 'azimptl']:
+        print(k)
+        if params[k] not in ['Unknown', 'unknown']:
+            xml_node(k, params[k], mapprojp)
+    return mapprojp
 
 def equirectangular(params):
     """
@@ -1139,6 +1168,11 @@ PROJECTION_LOOKUP['Van der Grinten'] = {'shortname': 'vdgrin',
                                   'function': van_der_grinten,
                                     'elements': ['longcm', 'feast', 'fnorth']}
 
+PROJECTION_LOOKUP['undefined'] = {'shortname': 'mapprojp',
+                                                'gdal_name': 'NA',
+                                                'function': 'NA',
+                                                'elements': ['stdparll', 'stdparll_2', 'longcm', 'latprjo', 'feast', 'fnorth']}
+
 
 
 GRIDSYS_LOOKUP = collections.OrderedDict()
@@ -1374,7 +1408,15 @@ def get_raster_attribute_table(fname):
     band = raster.GetRasterBand(1)
     rat = band.GetDefaultRAT()
     if rat is None:
-        return band_to_df(band)
+        # check for a sidecar dbf vat
+        vatdbf = fname + ".vat.dbf"
+        if os.path.exists(vatdbf):
+            vat = data_io.read_dbf(vatdbf)
+            if 'OID' not in vat.columns:
+                vat.insert(0, 'OID', range(0, len(vat)))
+            return vat
+        else:
+            return band_to_df(band)
     else:
         return rat_to_df(rat)
 

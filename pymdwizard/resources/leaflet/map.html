@@ -8,8 +8,8 @@
 
     <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.3/dist/leaflet.css" integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ==" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.0.3/dist/leaflet.js" integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg==" crossorigin=""></script>
+    <link rel="stylesheet" href="leaflet/leaflet.css" integrity="sha512-07I2e+7D8p6he1SIM+1twR5TIrhUQn9+I6yjqD53JQjFiMf8EtC93ty0/5vJTZGF8aAocvHYNEDJajGdNx1IsQ==" crossorigin=""/>
+    <script src="leaflet/leaflet.js" integrity="sha512-A7vV8IFfih/D732iSSKi20u/ooOfj/AGehOKq0f4vLT1Zr2Y+RX7C+w8A1gaSasGtRUZpF/NZgzSAu4/Gc41Lg==" crossorigin=""></script>
     <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
     <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
 </head>
@@ -71,33 +71,33 @@
 
     L.control.layers(baseMaps, overlayMaps).addTo(map);
 
-
+    map.setView([51.505, -0.09], 1);
 
     var ne_marker = new L.marker([north, east],{
         draggable: true
-    }).addTo(map);
+    });
     ne_marker.bindPopup("move to resize");
 
     var nw_marker = new L.marker([north, west],{
         draggable: true
-    }).addTo(map);
+    });
     nw_marker.bindPopup("move to resize");
 
     var se_marker = new L.marker([south, east],{
         draggable: true
-    }).addTo(map);
+    });
     se_marker.bindPopup("move to resize");
 
     var sw_marker = new L.marker([south, west],{
         draggable: true
-    }).addTo(map);
+    });
     sw_marker.bindPopup("move corner markers to resize");
 
 
     var southWest = new L.latLng(south, west);
     var northEast = new L.latLng(north, east);
     var bounds = new L.latLngBounds(southWest, northEast);
-    var rect = new L.rectangle(bounds, {color: 'blue', weight: 1}).addTo(map);
+    var rect = new L.rectangle(bounds, {color: 'blue', weight: 1})
 
 
     ne_marker.on("dragend",function(ev){
@@ -132,6 +132,22 @@
         updateMap();
     });
 
+    function removeRect(){
+        map.removeLayer(se_marker);
+        map.removeLayer(ne_marker);
+        map.removeLayer(sw_marker);
+        map.removeLayer(nw_marker);
+        map.removeLayer(rect);
+    };
+
+    function addRect(){
+        map.addLayer(se_marker);
+        map.addLayer(ne_marker);
+        map.addLayer(sw_marker);
+        map.addLayer(nw_marker);
+        map.addLayer(rect);
+    };
+
     function updateMap(){
         var southWest = new L.latLng(south, west);
         var northEast = new L.latLng(north,east);
@@ -145,6 +161,7 @@
 
         var bounds = new L.latLngBounds(southWest, northEast);
         rect.setBounds(bounds);
+
     }
 
     function fitMap(){

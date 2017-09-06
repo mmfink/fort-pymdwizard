@@ -1,5 +1,6 @@
 import requests
 
+import json
 from dateutil import parser
 
 from lxml import etree
@@ -47,7 +48,9 @@ def validate_xml(xml, xsl_fname='fgdc', as_dataframe=False):
     xmlschema = etree.XMLSchema(xmlschema_doc)
 
     xml_str = xml_utils.node_to_string(xml_utils.xml_document_loader(xml))
-    tree = etree.ElementTree(etree.fromstring(xml_str))
+
+    parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+    tree = etree.ElementTree(etree.fromstring(xml_str.encode('utf-8')))
 
     if xmlschema.validate(tree):
         return []
@@ -64,11 +67,25 @@ def validate_xml(xml, xsl_fname='fgdc', as_dataframe=False):
             errors.append(('Unknown', clean_error_message(error.message),
                            error.line))
 
+    errors = list(set(errors))
+
     if as_dataframe:
         cols = ['xpath', 'message', 'line number']
         return pd.DataFrame.from_records(errors, columns=cols)
     else:
         return errors
+
+
+def get_fgdc_lookup():
+    annotation_lookup_fname = utils.get_resource_path('FGDC/bdp_lookup')
+    try:
+        with open(annotation_lookup_fname, encoding='utf-8') as data_file:
+            annotation_lookup = json.loads(data_file.read())
+    except TypeError:
+        with open(annotation_lookup_fname) as data_file:
+            annotation_lookup = json.loads(data_file.read())
+
+    return annotation_lookup
 
 
 def clean_error_message(message):

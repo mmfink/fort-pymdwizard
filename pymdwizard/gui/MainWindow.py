@@ -44,21 +44,25 @@ import tempfile
 import time
 import datetime
 import shutil
+from subprocess import Popen
 
 from lxml import etree
 
-
 from PyQt5.QtWidgets import QMainWindow, QApplication, QSplashScreen, QMessageBox, QAction
 from PyQt5.QtWidgets import QWidget, QPushButton
-from PyQt5.QtWidgets import QFileDialog, QDialog
+from PyQt5.QtWidgets import QFileDialog, QDialog, QTabWidget
 from PyQt5.QtCore import QFile, QFileInfo
 from PyQt5.QtCore import Qt, QSettings, QFileSystemWatcher
 from PyQt5.QtGui import QPainter, QPixmap
 
+try:
+    import docx
+except ImportError:
+    docx = None
 
 from pymdwizard.gui.ui_files import UI_MainWindow
 from pymdwizard.gui.MetadataRoot import MetadataRoot
-from pymdwizard.core import xml_utils, utils, fgdc_utils
+from pymdwizard.core import xml_utils, utils, fgdc_utils, review_utils
 from pymdwizard.gui.Preview import Preview
 
 import sip
@@ -117,6 +121,11 @@ class PyMdWizardMainForm(QMainWindow):
             just_fname = os.path.split(template_fname)[-1]
             self.ui.actionCurrentTemplate.setText('Current: ' + just_fname)
 
+        if docx is None:
+            self.ui.generate_review.setEnabled(False)
+
+        self.setAcceptDrops(True)
+
     def connect_events(self):
         """
         Connect the appropriate GUI components with the corresponding functions
@@ -137,6 +146,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionRestoreBuiltIn.triggered.connect(self.restore_template)
         self.ui.actionLaunch_Jupyter.triggered.connect(self.launch_jupyter)
         self.ui.actionUpdate.triggered.connect(self.update_from_github)
+        self.ui.generate_review.triggered.connect(self.generate_review_doc)
 
     def open_recent_file(self):
         """
@@ -201,6 +211,10 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
+        changed = self.check_for_changes()
+        if changed == 'Cancel':
+            return changed
+
         self.file_watcher = QFileSystemWatcher([fname])
         self.file_watcher.fileChanged.connect(self.file_updated)
         self.last_updated = time.time()
@@ -221,6 +235,7 @@ class PyMdWizardMainForm(QMainWindow):
         QApplication.setOverrideCursor(Qt.WaitCursor)
         QApplication.processEvents()
         exc_info = sys.exc_info()
+        self.metadata_root.clear_widget()
         try:
             new_record = etree.parse(fname)
             self.metadata_root._from_xml(new_record)
@@ -381,6 +396,7 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
+
         self.cur_fname = fname
         if fname:
             stripped_name = QFileInfo(fname).fileName()
@@ -430,6 +446,23 @@ class PyMdWizardMainForm(QMainWindow):
         for j in range(num_recent_files, PyMdWizardMainForm.max_recent_files):
             self.recent_file_actions[j].setVisible(False)
 
+    def check_for_changes(self):
+        if self.cur_fname and os.path.exists(self.cur_fname):
+            cur_xml = xml_utils.node_to_string(self.metadata_root._to_xml())
+            disk_xml = xml_utils.node_to_string(xml_utils.fname_to_node(self.cur_fname))
+
+            if cur_xml != disk_xml:
+                msg = "Do you want to save your changes?"
+                alert = QDialog()
+                self.last_updated = time.time()
+                confirm = QMessageBox.question(self, "Save Changes", msg, QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if confirm == QMessageBox.Yes:
+                    xml_utils.save_to_file(self.metadata_root._to_xml(), self.cur_fname)
+                elif confirm == QMessageBox.Cancel:
+                    return 'Cancel'
+                self.cur_fname = ''
+        return None
+
     def exit(self):
         """
         Before exiting check if the current contents match what is on the
@@ -441,23 +474,12 @@ class PyMdWizardMainForm(QMainWindow):
         str :
         'Close' or 'Cancel' depending on user choice.
         """
-        if self.cur_fname:
-            cur_xml = xml_utils.node_to_string(self.metadata_root._to_xml())
-            disk_xml = xml_utils.node_to_string(xml_utils.fname_to_node(self.cur_fname))
-
-            if cur_xml != disk_xml:
-                msg = "Would you like to save before exiting?"
-                alert = QDialog()
-                self.last_updated = time.time()
-                confirm = QMessageBox.question(self, "File Changed", msg, QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
-                if confirm == QMessageBox.Yes:
-                    self.save_file()
-                elif confirm == QMessageBox.Cancel:
-                    return 'Cancel'
-                self.cur_fname = ''
-
-        self.close()
-        return 'Close'
+        changed = self.check_for_changes()
+        if changed == 'Cancel':
+            return changed
+        else:
+            self.close()
+            return 'Close'
 
     def closeEvent(self, event):
         """ Intercept the builtin closeEvent so that we can check for
@@ -486,19 +508,20 @@ class PyMdWizardMainForm(QMainWindow):
         """
         self.ui.menuErrors.clear()
 
-        annotation_lookup_fname = utils.get_resource_path("FGDC/bdp_lookup")
-        with open(annotation_lookup_fname, encoding='utf-8') as data_file:
-            annotation_lookup = json.loads(data_file.read())
+        annotation_lookup = fgdc_utils.get_fgdc_lookup()
 
         for widget in self.error_widgets:
-
             if not sip.isdeleted(widget) and \
                     widget.objectName() not in ['metadata_root', 'fgdc_metadata']:
                 widget.setStyleSheet("""""")
+                print(widget.objectName())
                 shortname = widget.objectName().replace('fgdc_', '')
                 if shortname[-1].isdigit():
                     shortname = shortname[:-1]
-                widget.setToolTip(annotation_lookup[shortname]['annotation'])
+                try:
+                    widget.setToolTip(annotation_lookup[shortname]['annotation'])
+                except KeyError:
+                    widget.setToolTip('')
 
         self.error_widgets = []
 
@@ -523,31 +546,62 @@ class PyMdWizardMainForm(QMainWindow):
 
         marked_errors = []
 
-        self.widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
+        # We need to expand / populate all attributes that have an error
+        for error in errors:
+            try:
+                xpath, error_msg, line_num = error
+                if 'attr' in xpath:
+                    try:
+                        detailed_index = xpath.split('/detailed[')[1].split('/')[0][:-1]
+                        detailed_index = int(detailed_index)-1
+                    except IndexError:
+                        detailed_index = 0
 
+                    try:
+                        attr_index = xpath.split('/attr[')[1].split('/')[0][:-1]
+                        attr_index = int(attr_index)-1
+                    except IndexError:
+                        attr_index = 0
+
+                    # self.metadata_root.eainfo.detaileds[detailed_index].attributes.attrs[attr_index].supersize_me()
+                    self.metadata_root.eainfo.detaileds[detailed_index].attributes.attrs[attr_index].regular_me()
+                    self.metadata_root.eainfo.detaileds[detailed_index].attributes.attrs[attr_index].supersize_me()
+            except:
+                pass
+
+        widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
+        self.metadata_root.add_children(self.metadata_root.spatial_tab, widget_lookup.metadata.idinfo)
         error_count = 0
         for error in errors:
-            xpath, error_msg, line_num = error
-            if xpath not in marked_errors:
 
-                action = QAction(self, visible=True)
-                action.setText(error_msg)
-                action.setData(xpath)
-                action.triggered.connect(self.goto_error)
-                self.ui.menuErrors.addAction(action)
-                marked_errors.append(xpath)
+            try:
+                xpath, error_msg, line_num = error
+                if xpath not in marked_errors:
 
-                # widget = self.metadata_root.get_widget(xpath)
-                widgets = self.widget_lookup.xpath_march(xpath, as_list=True)
-                for widget in widgets:
-                    if isinstance(widget, list):
-                        for w in widget:
-                            print('problem highlighting error', xpath, widget)
-                    else:
-                        self.highlight_error(widget.widget, error_msg)
-                        self.error_widgets.append(widget.widget)
-                        error_count += 1
+                    action = QAction(self, visible=True)
+                    action.setText(error_msg)
+                    action.setData(xpath)
+                    action.triggered.connect(self.goto_error)
+                    self.ui.menuErrors.addAction(action)
+                    marked_errors.append(xpath)
 
+                    # widget = self.metadata_root.get_widget(xpath)
+                    widgets = widget_lookup.xpath_march(xpath, as_list=True)
+                    for widget in widgets:
+                        if isinstance(widget, list):
+                            for w in widget:
+                                print('problem highlighting error', xpath, widget)
+                        else:
+                            self.highlight_error(widget.widget, error_msg)
+                            self.error_widgets.append(widget.widget)
+                            error_count += 1
+            except BaseException as e:
+                import traceback
+                msg = "Error encountered highlighting error:"
+                msg += "\t" + xpath
+                msg += "\n\n" + traceback.format_exc()
+                QMessageBox.warning(self, "Bug encountered", msg)
+        widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
         if errors:
             msg = "There are {} errors in this record".format(error_count)
             self.statusBar().showMessage(msg, 20000)
@@ -601,7 +655,8 @@ class PyMdWizardMainForm(QMainWindow):
                 not sip.isdeleted(self.last_highlight):
             self.highlight_error(self.last_highlight, self.last_highlight.toolTip())
 
-        bad_widget = self.widget_lookup.xpath_march(xpath, as_list=True)
+        widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
+        bad_widget = widget_lookup.xpath_march(xpath, as_list=True)
         self.last_highlight = bad_widget[0].widget
         self.highlight_error(bad_widget[0].widget, self.sender().text(), superhot=True)
 
@@ -623,12 +678,13 @@ class PyMdWizardMainForm(QMainWindow):
             None
         """
 
-        if widget.objectName() in ['fgdc_edomv', 'fgdc_edomvd', 'fgdc_edomvds',
-                                   'fgdc_attrlabl', 'fgdc_attrdef',
-                                   'fgdc_attrdefs', 'fgdc_attrdomv',
+        if widget.objectName() in ['fgdc_attr', 'fgdc_edomv', 'fgdc_edomvd',
+                                   'fgdc_edomvds', 'fgdc_attrlabl',
+                                   'fgdc_attrdef', 'fgdc_attrdefs',
                                    'fgdc_codesetd', 'fgdc_edom', 'fgdc_rdom',
                                    'fgdc_udom', 'fgdc_rdommin', 'fgdc_rdommax',
-                                   'fgdc_codesetn', 'fgdc_codesets']:
+                                   'fgdc_codesetn', 'fgdc_codesets',
+                                   'fgdc_attrdomv',]:
             self.highlight_attr(widget)
 
         if widget.objectName() in ['fgdc_themekey', 'fgdc_themekt',
@@ -636,7 +692,6 @@ class PyMdWizardMainForm(QMainWindow):
                                    'fgdc_procdesc', 'fgdc_srcused',
                                    'fgdc_srcprod']:
             self.highlight_tab(widget)
-
 
         if superhot:
             color = "rgb(223,1,74)"
@@ -648,48 +703,56 @@ class PyMdWizardMainForm(QMainWindow):
         color = "rgb(225,67,94)"
 
         if widget.objectName() not in ['metadata_root', 'fgdc_metadata']:
-            widget.setToolTip(error_msg)
-            widget.setStyleSheet(
-                """
-        QGroupBox#{widgetname}{{
-        background-color: {color};
-        border: 2px solid red;
-        subcontrol-position: top left; /* position at the top left*/
-        padding-top: 20px;
-        font: bold 14px;
-        color: rgb(90, 90, 90);
-        }}
-        QGroupBox#{widgetname}::title {{
-        text-align: left;
-        subcontrol-origin: padding;
-        subcontrol-position: top left; /* position at the top center */padding: 3 3px;
-        }}
-        QLabel{{
-        font: 9pt "Arial";
-        color: rgb(90, 90, 90);
-        }}
-        QLineEdit#{widgetname}, QPlainTextEdit#{widgetname}, QComboBox#{widgetname} {{
-        font: 9pt "Arial";
-        color: rgb(50, 50, 50);
-        background-color: {color};
-        opacity: 25;
-        {lw}
-        }}
-        QToolTip {{
-        background-color: rgb(255,76,77);
-        border-color: red;
-        opacity: 255;
-        }}
-        """.format(widgetname=widget.objectName(), color=color, lw=lw))
+            try:
+                widget.setToolTip(error_msg)
+                widget.setStyleSheet(
+                            """
+                QGroupBox#{widgetname}{{
+                background-color: {color};
+                border: 2px solid red;
+                subcontrol-position: top left; /* position at the top left*/
+                padding-top: 20px;
+                font: bold 14px;
+                color: rgb(90, 90, 90);
+                }}
+                QGroupBox#{widgetname}::title {{
+                text-align: left;
+                subcontrol-origin: padding;
+                subcontrol-position: top left; /* position at the top center */padding: 3 3px;
+                }}
+                QLabel{{
+                font: 9pt "Arial";
+                color: rgb(90, 90, 90);
+                }}
+                QLineEdit#{widgetname}, QPlainTextEdit#{widgetname}, QComboBox#{widgetname} {{
+                font: 9pt "Arial";
+                color: rgb(50, 50, 50);
+                background-color: {color};
+                opacity: 25;
+                {lw}
+                }}
+                QToolTip {{
+                background-color: rgb(255,76,77);
+                border-color: red;
+                opacity: 255;
+                }}
+                """.format(widgetname=widget.objectName(), color=color, lw=lw))
+            except:
+                pass
 
 
 
     def highlight_attr(self, widget):
-        widget_parent = widget.parent()
+        widget_parent = widget
+        attr_frame = widget
 
         while not widget_parent.objectName() == 'fgdc_attr':
             widget_parent = widget_parent.parent()
+            attr_frame = widget_parent
+        self.error_widgets.append(attr_frame)
+        widget_parent = widget_parent.parent()
 
+        widget_parent.supersize_me()
         error_msg = "'Validation error in hidden contents, click to show'"
         widget_parent.setToolTip(error_msg)
         widget_parent.setStyleSheet(
@@ -697,27 +760,59 @@ class PyMdWizardMainForm(QMainWindow):
     QFrame#{widgetname}{{
     border: 2px solid red;
     }}
-        """.format(widgetname=widget_parent.objectName()))
+        """.format(widgetname=attr_frame.objectName()))
 
         self.error_widgets.append(widget_parent)
 
     def highlight_tab(self, widget):
-        pass
-    #         widget_parent = widget.parent()
-    #
-    #     while not widget_parent.
-    #         widget_parent = widget_parent.parent()
-    #
-    #     error_msg = "'Validation error in hidden contents, click to show'"
-    #     widget_parent.setToolTip(error_msg)
-    #     widget_parent.setStyleSheet(
-    #         """
-    # QTab#{widgetname}{{
-    # border: 2px solid red;
-    # }}
-    #     """.format(widgetname=widget_parent.objectName()))
-    #
-    #     self.error_widgets.append(widget_parent
+
+        widget_parent = widget.parent()
+        while not type(widget_parent) == QTabWidget:
+            widget_parent = widget_parent.parent()
+
+        error_msg = "'Validation error in hidden contents, click to show'"
+        widget_parent.setToolTip(error_msg)
+        widget_parent.setStyleSheet(
+            """
+    QTabBar {{
+    background-color: rgb(225,67,94);
+    qproperty-drawBase:0;
+
+}}
+        """)
+        #.format(widgetname=widget_parent.objectName()))
+
+        self.error_widgets.append(widget_parent)
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls:
+            e.accept()
+        else:
+            e.ignore()
+
+    def dragMoveEvent(self, e):
+        if e.mimeData().hasUrls:
+            e.accept()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        """
+        Drop files directly onto the widget
+        File locations are stored in fname
+        :param e:
+        :return:
+        """
+        if e.mimeData().hasUrls:
+            e.setDropAction(Qt.CopyAction)
+
+            url = e.mimeData().urls()[0]
+            fname = url.toLocalFile()
+            if os.path.isfile(fname):
+                self.open_file(fname)
+            e.accept()
+        else:
+            e.ignore()
 
     def preview(self):
         """
@@ -744,6 +839,34 @@ class PyMdWizardMainForm(QMainWindow):
 
         self.preview_dialog.exec_()
 
+    def generate_review_doc(self):
+        if self.cur_fname:
+            out_fname = self.cur_fname[:-4] + '_REVIEW.docx'
+
+            if time.time() - self.last_updated > 4:
+                msg = "Would you like to save the current file before continuing?"
+                alert = QDialog()
+                self.last_updated = time.time()
+                confirm = QMessageBox.question(self, "File save", msg, QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel)
+                if confirm == QMessageBox.Yes:
+                    self.save_file()
+                elif confirm == QMessageBox.Cancel:
+                    return
+            try:
+                cur_content = xml_utils.XMLRecord(self.cur_fname)
+                review_utils.generate_review_report(cur_content, out_fname)
+
+                import subprocess
+                os.startfile('"{}"'.format(out_fname))
+                msg = 'Review document available at: {}'.format(out_fname)
+                msg += '\n\nReview document now opening in default application...'
+                QMessageBox.information(self, "Review finished", msg)
+            except BaseException as e:
+                import traceback
+                msg = "Problem encountered generateing review document:\n{}".format(traceback.format_exc())
+                QMessageBox.warning(self, "Problem encountered", msg)
+
+
     def launch_jupyter(self):
         """
         Launches a jupyter notebook server in our examples directory
@@ -752,7 +875,6 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
-        from subprocess import Popen
 
         jupyter_dialog = JupyterLocationDialog()
         utils.set_window_icon(jupyter_dialog.msgBox)
@@ -852,7 +974,12 @@ def launch_main(xml_fname=None, introspect_fname=None):
     if xml_fname is not None and os.path.exists(xml_fname):
         mdwiz.open_file(xml_fname)
 
-    if introspect_fname is not None and os.path.exists(introspect_fname):
+    if introspect_fname is not None and introspect_fname.endswith('$'):
+        just_fname, _ = os.path.split(introspect_fname)
+    else:
+        just_fname = introspect_fname
+
+    if introspect_fname is not None and os.path.exists(just_fname):
         mdwiz.metadata_root.eainfo.detaileds[0].populate_from_fname(introspect_fname)
         mdwiz.metadata_root.eainfo.ui.fgdc_eainfo.setCurrentIndex(1)
     app.exec_()

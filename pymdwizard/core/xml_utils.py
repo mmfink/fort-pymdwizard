@@ -91,8 +91,10 @@ def save_to_file(element, fname):
     -------
     None
     """
-    with open(fname, "w") as text_file:
-        text_file.write(node_to_string(element))
+    import codecs
+    file = codecs.open(fname, "w", "utf-8")
+    file.write(node_to_string(element))
+    file.close()
 
 
 def node_to_dict(node, add_fgdc=True):
@@ -270,7 +272,8 @@ def node_to_string(node):
     str :
     Pretty string representation of node
     """
-    return etree.tostring(node, pretty_print=True, with_tail=False).decode()
+    return etree.tostring(node, pretty_print=True, with_tail=False,
+                          encoding='UTF-8', xml_declaration=True).decode()
 
 
 def fname_to_node(fname):
@@ -284,7 +287,12 @@ def fname_to_node(fname):
     -------
     lxml node
     """
-    return etree.parse(fname)
+    try:
+        return etree.parse(fname)
+    except:
+        msg = "Error encounterd opening the selected file"
+        msg += "\n Please make sure file exists and is valid FGDC XML"
+
 
 
 def string_to_node(str_node):
@@ -359,10 +367,22 @@ def clear_children(element):
 ###############################################################################
 
 class XMLRecord(object):
-    def __init__(self, fname):
-        self.fname = fname
-        self.record = etree.parse(fname)
-        self._root = self.record.getroot()
+    def __init__(self, contents):
+        try:
+            if os.path.exists(contents[:255]):
+                self.fname = contents
+                #they passed us a file path
+                self.record = etree.parse(self.fname)
+                self._root = self.record.getroot()
+            else:
+                self.fname = None
+                self._root = string_to_node(contents)
+                self.record = etree.ElementTree(self._root)
+        except etree.XMLSyntaxError:
+            self.fname = None
+            self.record = etree.fromstring(contents)
+            self._root = self.record.getroot()
+
         self.tag = self._root.tag
         self.__dict__[self._root.tag] = XMLNode(self.record.getroot())
         self._contents = self.__dict__[self._root.tag]
@@ -404,10 +424,8 @@ class XMLNode(object):
         elif type(element) == str:
             self.from_str(element)
 
-
-
         if parent_node is not None:
-            parent_node.add_child(self, index=index)
+            parent_node.add_child(self, index=index, deepcopy=False)
 
     def __repr__(self):
         return self.__str__()
@@ -417,10 +435,11 @@ class XMLNode(object):
             cur_node = xml_node(self.tag, self.text)
             result = "{}{}".format("  "*level, etree.tostring(cur_node, pretty_print=True).decode()).rstrip()
         else:
-            result = "{}<{}>\n".format("  "*level, self.tag, self.tag)
-
-            result += '\n'.join([child.__str__(level=level+1) for child in self.children])
-
+            result = "{}<{}>".format("  "*level, self.tag, self.tag)
+            for child in self.children:
+                if type(self.__dict__[child.tag]) == XMLNode:
+                    child = self.__dict__[child.tag]
+                result += '\n' + child.__str__(level=level+1)
             result += '\n{}</{}>'.format("  "*level, self.tag)
         return result
 
@@ -538,7 +557,29 @@ class XMLNode(object):
         else:
             self.children = []
 
-    def add_child(self, child, index=-1):
+    def replace_child(self, new_child, tag=None, deepcopy=True):
+        """
+        replaces the
+
+        Parameters
+        ----------
+        tag : Str (optional)
+            The child node tag that will be replaced.
+            If not supplied the tag of the child node will be used.
+        child : XMLNode
+
+        Returns
+        -------
+        None
+        """
+        if tag is None:
+            tag = new_child.tag
+        for i, child in enumerate(self.children):
+            if child.tag == tag:
+                del self.children[i]
+                self.add_child(new_child, i, deepcopy=deepcopy)
+
+    def add_child(self, child, index=-1, deepcopy=True):
         if index == -1:
             index = len(self.children)
         if index < -1:
@@ -550,7 +591,10 @@ class XMLNode(object):
             node_str = child.to_str()
         child_copy = XMLNode(node_str)
 
-        self.children.insert(index, child_copy)
+        if deepcopy:
+            self.children.insert(index, child_copy)
+        else:
+            self.children.insert(index, child)
         self.add_attr(child.tag, child)
 
     def copy(self):
@@ -578,3 +622,5 @@ def split_tag(tag):
         fgdc_tag = tag
         index = 0
     return fgdc_tag, index
+
+

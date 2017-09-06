@@ -41,21 +41,13 @@ responsibility is assumed by the USGS in connection therewith.
 
 from lxml import etree
 
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QMessageBox
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QComboBox, QTableView, QFormLayout, QLabel
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QPlainTextEdit, QRadioButton, QFrame
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle, QScrollArea, QGroupBox
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint
-
-
+from PyQt5.QtWidgets import QComboBox
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
 
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_SRCInfo
-from pymdwizard.gui.fgdc_date import FGDCDate
 from pymdwizard.gui.citeinfo import Citeinfo
 from pymdwizard.gui.timeperd import Timeperd
 
@@ -79,7 +71,6 @@ class SRCInfo(WizardWidget): #
         self.timeperd = Timeperd()
         self.citation = Citeinfo(parent=self, include_lwork=False)
 
-        self.citation.ui.fgdc_lworkcit.deleteLater()
         self.ui.widget_citation.layout().addWidget(self.citation)
         self.ui.widget_timeperd.layout().addWidget(self.timeperd)
 
@@ -93,6 +84,25 @@ class SRCInfo(WizardWidget): #
         -------
         None
         """
+        self.ui.fgdc_srccitea.editingFinished.connect(self.update_tab_label)
+        self.ui.fgdc_srcscale.editingFinished.connect(self.format_scale)
+
+    def update_tab_label(self):
+        new_label = "Source: {}".format(self.ui.fgdc_srccitea.text())
+        tab_widget = self.ui.fgdc_srccitea.parent().parent().parent().parent()
+        current_index = tab_widget.currentIndex()
+        tab_widget.setTabText(current_index, new_label)
+
+    def format_scale(self):
+        cur_text = self.ui.fgdc_srcscale.text().replace(',', '')
+        try:
+            if '.' in cur_text:
+                formatted_text = '{:,}'.format(float(cur_text))
+            else:
+                formatted_text = '{:,}'.format(int(cur_text))
+            self.ui.fgdc_srcscale.setText(formatted_text)
+        except:
+            pass
 
     def _to_xml(self):
         """
@@ -110,8 +120,9 @@ class SRCInfo(WizardWidget): #
 
         if self.ui.fgdc_srcscale.text():
             srcscale = xml_utils.xml_node('srcscale',
-                                          text=self.ui.fgdc_srcscale.text(),
+                                          text=self.ui.fgdc_srcscale.text().replace(',', ''),
                                           parent_node=srcinfo)
+
         typesrc = xml_utils.xml_node('typesrc',
                                       text=self.ui.fgdc_typesrc.currentText(),
                                       parent_node=srcinfo)
@@ -126,11 +137,11 @@ class SRCInfo(WizardWidget): #
         srctime.append(cur)
 
         srccitea = xml_utils.xml_node('srccitea',
-                                      text = self.ui.fgdc_srccitea.text(),
+                                      text=self.ui.fgdc_srccitea.text(),
                                       parent_node=srcinfo)
 
         srccontr = xml_utils.xml_node('srccontr',
-                                      text = self.ui.fgdc_srccontr.text(),
+                                      text=self.ui.fgdc_srccontr.toPlainText(),
                                       parent_node=srcinfo)
 
         return srcinfo
@@ -159,6 +170,7 @@ class SRCInfo(WizardWidget): #
             self.citation._from_xml(citeinfo)
 
             utils.populate_widget_element(self.ui.fgdc_srcscale, srcinfo, 'srcscale')
+            self.format_scale()
 
             typesrc = srcinfo.xpath('typesrc/text()')
             typesrc_text = str(typesrc[0])

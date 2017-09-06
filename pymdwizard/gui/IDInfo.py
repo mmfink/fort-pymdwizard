@@ -56,7 +56,7 @@ from pymdwizard.core import xml_utils
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_IdInfo
 from pymdwizard.gui.PointOfContact import ContactInfoPointOfContact
-from pymdwizard.gui.Taxonomy2 import Taxonomy
+from pymdwizard.gui.Taxonomy import Taxonomy
 from pymdwizard.gui.Keywords import Keywords
 from pymdwizard.gui.AccessConstraints import AccessConstraints
 from pymdwizard.gui.UseConstraints import UseConstraints
@@ -68,7 +68,7 @@ from pymdwizard.gui.descript import Descript
 from pymdwizard.gui.supplinf import SupplInf
 from pymdwizard.gui.abstract import Abstract
 from pymdwizard.gui.purpose import Purpose
-
+from pymdwizard.gui.crossref import CrossRef
 
 class IdInfo(WizardWidget):
 
@@ -122,7 +122,8 @@ class IdInfo(WizardWidget):
         self.ui.two_column_right.layout().insertWidget(0, self.purpose)
         self.ui.two_column_right.layout().insertWidget(0, self.descript)
 
-
+        self.crossref = CrossRef()
+        self.ui.fgdc_crossref.layout().addWidget(self.crossref)
 
 
     def dragEnterEvent(self, e):
@@ -158,6 +159,8 @@ class IdInfo(WizardWidget):
 
     def clear_widget(self):
         self.root_widget.spatial_tab.spdom.clear_widget()
+        self.taxonomy.clear_widget()
+        self.taxonomy.ui.rbtn_no.setChecked(True)
         WizardWidget.clear_widget(self)
 
     def _to_xml(self):
@@ -206,6 +209,12 @@ class IdInfo(WizardWidget):
             ptcontac = self.ptcontac._to_xml()
             idinfo_node.append(ptcontac)
 
+        if self.original_xml is not None:
+            browse = xml_utils.search_xpath(self.original_xml, 'browse')
+            if browse is not None:
+                browse.tail = None
+                idinfo_node.append(deepcopy(browse))
+
         datacredit_node = self.datacredit._to_xml()
         if datacredit_node.text:
             idinfo_node.append(datacredit_node)
@@ -221,15 +230,13 @@ class IdInfo(WizardWidget):
                 native.tail = None
                 idinfo_node.append(deepcopy(native))
 
-
-            crossref_list = xml_utils.search_xpath(self.original_xml,
-                                                'crossref', only_first=False)
+            crossref_list = self.crossref._to_xml()
             for crossref in crossref_list:
                 crossref.tail = None
                 idinfo_node.append(deepcopy(crossref))
 
-            tool = xml_utils.search_xpath(self.original_xml, 'tool')
-            if tool is not None:
+            tools = xml_utils.search_xpath(self.original_xml, 'tool', only_first=False)
+            for tool in tools:
                 tool.tail = None
                 idinfo_node.append(deepcopy(tool))
 
@@ -237,7 +244,7 @@ class IdInfo(WizardWidget):
 
     def _from_xml(self, xml_idinfo):
 
-        self.original_xml = (xml_idinfo)
+        self.original_xml = xml_idinfo
 
         citation = xml_utils.search_xpath(xml_idinfo, 'citation')
         if citation is not None:
@@ -291,7 +298,9 @@ class IdInfo(WizardWidget):
         if datacred is not None:
             self.datacredit._from_xml(datacred)
 
-
+        crossref = xml_utils.search_xpath(xml_idinfo, 'crossref')
+        if crossref is not None:
+            self.crossref._from_xml(xml_idinfo)
 
 
 

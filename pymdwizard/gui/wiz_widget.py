@@ -37,14 +37,14 @@ import sys
 from lxml import etree
 
 from PyQt5.QtWidgets import QMainWindow, QApplication, QMenu, QMessageBox
-from PyQt5.QtWidgets import QWidget, QLabel, QComboBox
+from PyQt5.QtWidgets import QWidget, QLabel, QComboBox, QTabWidget
 from PyQt5.QtWidgets import QSpacerItem, QToolButton, QGroupBox, QPlainTextEdit
 from PyQt5.QtGui import QFont
 from PyQt5.QtGui import QColor, QDrag, QPainter, QIcon
 from PyQt5.QtCore import Qt, QMimeData, QObject, QByteArray, QRegExp, QEvent
 
 from pymdwizard.core import utils
-from pymdwizard.core import xml_utils
+from pymdwizard.core import xml_utils, fgdc_utils
 
 
 class WizardWidget(QWidget):
@@ -161,7 +161,10 @@ class WizardWidget(QWidget):
 
     def get_children(self, widget):
         try:
-            widget_children = widget.children()
+            if type(widget) == QTabWidget:
+                widget_children = [widget.widget(i) for i in range(widget.count())]
+            else:
+                widget_children = widget.children()
         except AttributeError:
             try:
                 widget_children = [widget.itemAt(i) for i in range(widget.count())]
@@ -189,8 +192,6 @@ class WizardWidget(QWidget):
             else:
                 self.add_children(child_widget, parent_node)
         return parent_node
-
-
 
     def dragEnterEvent(self, e):
         """
@@ -345,15 +346,7 @@ class WizardWidget(QWidget):
         self.set_stylesheet()
 
     def populate_tooltips(self):
-        import json
-        annotation_lookup_fname = utils.get_resource_path('FGDC/bdp_lookup')
-        try:
-            with open(annotation_lookup_fname, encoding='utf-8') as data_file:
-                annotation_lookup = json.loads(data_file.read())
-        except TypeError:
-            with open(annotation_lookup_fname) as data_file:
-                annotation_lookup = json.loads(data_file.read())
-
+        annotation_lookup = fgdc_utils.get_fgdc_lookup()
 
         if self.objectName().startswith('fgdc_'):
             self.populate_tooltip(self, annotation_lookup)
@@ -370,6 +363,12 @@ class WizardWidget(QWidget):
                 shortname = shortname[:-1]
             widget.setToolTip(annotation_lookup[shortname]['long_name'])
             widget.help_text = annotation_lookup[shortname]['annotation']
+            try:
+                if not hasattr(widget.parentWidget(), 'help_text') or \
+                        not widget.parentWidget().help_text:
+                    widget.parentWidget().help_text = widget.help_text
+            except:
+                pass
 
     def clear_widget(self):
         """
@@ -380,11 +379,9 @@ class WizardWidget(QWidget):
         """
         from pymdwizard.gui import repeating_element
         widgets = self.findChildren(QWidget, QRegExp(r'.*'))
-        for widget in widgets:
-            if isinstance(widget, WizardWidget):
-                widget.clear_widget()
 
-            elif isinstance(widget, repeating_element.RepeatingElement):
+        for widget in widgets:
+            if isinstance(widget, repeating_element.RepeatingElement):
                 widget.clear_widgets()
                 rep1_widget = widget.get_widgets()[0]
                 if isinstance(rep1_widget, WizardWidget):
@@ -393,6 +390,9 @@ class WizardWidget(QWidget):
             elif widget.objectName().startswith('fgdc_'):
                 utils.set_text(widget, '')
 
+        for widget in widgets:
+            if isinstance(widget, WizardWidget):
+                widget.clear_widget()
 
     def has_content(self):
         """
@@ -407,10 +407,15 @@ class WizardWidget(QWidget):
         return True
 
     def leaveEvent(self, event):
+        if self.objectName() == 'attribute_widget':
+            return
+
         if not self.in_context:
             self.setStyleSheet(NORMAL_STYLE)
 
     def enterEvent(self, QEvent):
+        if self.objectName() == 'attribute_widget':
+            return
         self.setStyleSheet(FOCUS_STYLE)
 
     def contextMenuEvent(self, event):

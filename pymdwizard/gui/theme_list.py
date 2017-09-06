@@ -136,6 +136,7 @@ class ThemeList(WizardWidget): #
 
     def add_iso(self):
         self.ui.theme_tabs.setTabEnabled(0, True)
+        self.ui.theme_tabs.setTabText(0, 'ISO 19115')
         self.ui.fgdc_theme.show()
 
         self.ui.theme_tabs.setCurrentIndex(0)
@@ -161,6 +162,8 @@ class ThemeList(WizardWidget): #
         for i in range(len(self.thesauri), -1, -1):
             self.ui.theme_tabs.setCurrentIndex(i)
             self.remove_selected()
+
+        self.ui.fgdc_themekt.setText('ISO 19115 Topic Category')
 
     def search_controlled(self):
 

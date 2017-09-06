@@ -74,8 +74,9 @@ class Detailed(WizardWidget):  #
         """
         self.ui = UI_detailed.Ui_fgdc_detailed()
         self.ui.setupUi(self)
+        self.ui.displayed_widget.hide()
 
-        self.attributes = attributes.Attributes()
+        self.attributes = attributes.Attributes(parent=self)
         self.ui.attribute_frame.layout().addWidget(self.attributes)
 
         self.setup_dragdrop(self)
@@ -104,10 +105,21 @@ class Detailed(WizardWidget):  #
                 msg = "Could not extract data from file %s:\n%s." % (fname, traceback.format_exc())
                 QMessageBox.warning(self, "Data file error", msg)
 
-    def populate_from_fname(self, fname):
-        shortname = os.path.split(fname)[1]
+    def update_displayed_label(self):
+        pass
 
+    def populate_from_fname(self, fname):
+        if fname.endswith('$'):
+            fname, sheet_name = os.path.split(fname)
+            sheet_name = sheet_name[:-1]
+            ok = True
+        else:
+            sheet_name = None
+
+        shortname = os.path.split(fname)[1]
         ext = os.path.splitext(shortname)[1]
+
+        self.ui.fgdc_enttypds.setText('Producer defined')
         if ext.lower() == '.csv':
             try:
                 self.clear_widget()
@@ -130,11 +142,12 @@ class Detailed(WizardWidget):  #
             self.attributes.load_df(df)
 
         elif ext.lower() in ['.xlsm', '.xlsx', '.xls']:
-            sheets = data_io.get_sheet_names(fname)
+            if sheet_name is None:
+                sheets = data_io.get_sheet_names(fname)
 
-            sheet_name, ok = QInputDialog.getItem(self, "select sheet dialog",
-                                "Pick one of the sheets from this workbook",
-                                                  sheets, 0, False)
+                sheet_name, ok = QInputDialog.getItem(self, "select sheet dialog",
+                                    "Pick one of the sheets from this workbook",
+                                                      sheets, 0, False)
             if ok and sheet_name:
                 self.clear_widget()
                 self.ui.fgdc_enttypl.setText('{} ({})'.format(shortname, sheet_name))
@@ -148,6 +161,22 @@ class Detailed(WizardWidget):  #
             self.ui.fgdc_enttypd.setPlainText('Raster geospatial data file.')
             df = get_raster_attribute_table(fname)
             self.attributes.load_df(df)
+            oid_attr = self.attributes.get_attr('OID')
+            if oid_attr is not None:
+                oid_attr.populate_domain_content(3)
+                oid_attr.ui.fgdc_attrdef.setPlainText('Internal object identifier.')
+                oid_attr.domain.ui.fgdc_udom.setPlainText('Sequential unique whole numbers that are automatically generated.')
+                oid_attr.regularsize_me()
+                oid_attr.supersize_me()
+            value_attr = self.attributes.get_attr('Value')
+            if value_attr is not None:
+                value_attr.populate_domain_content(1)
+                value_attr.ui.fgdc_attrdef.setPlainText('Unique numeric values contained in each raster cell.')
+            count_attr = self.attributes.get_attr('Count')
+            if count_attr is not None:
+                count_attr.populate_domain_content(1)
+                count_attr.ui.fgdc_attrdef.setPlainText('Number of raster cells with this value.')
+
         elif ext.lower() == ".p":
             p = pickle.load(open(fname, "rb"), encoding='bytes')
 
