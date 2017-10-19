@@ -1,0 +1,307 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Batch Processing using Jupyter and Python &mdash; MetadataWizard  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="../genindex.html"/>
+        <link rel="search" title="Search" href="../search.html"/>
+    <link rel="top" title="MetadataWizard  documentation" href="../index.html"/>
+        <link rel="prev" title="Changing Your Template" href="Changing Your Template.html"/> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> MetadataWizard
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../Windows Installation.html">Windows Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Installing from Source.html">Installing from Source</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Installing ArcMap Toolbox.html">Installing ArcMap Toolbox</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Reporting Bugs and Enhancement Ideas.html">Reporting Bugs and Enhancement Ideas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../Getting Software Updates.html">Getting Software Updates</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../usage/File Management, New, Open, Save, Save as.....html">File Management, New, Open, Save, Save as….</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/Using the Metadata Wizard.html">Using the Metadata Wizard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/Spatial Content.html">Spatial Content</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/How to fill out the Entity and Attribute tab.html">How to fill out the Entity and Attribute tab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/Generating a Taxonomic Information Section.html">Generating a Taxonomic Information Section</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/Previewing a Record.html">Previewing a Record</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage/Validating a Record.html">Validating a Record</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="Changing Your Template.html">Changing Your Template</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Batch Processing using Jupyter and Python</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#launching-jupyter-from-the-wizard">Launching Jupyter from the Wizard</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-notebooks">Example Notebooks</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MetadataWizard</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Batch Processing using Jupyter and Python</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/advancedusage/Launch Jupyter for Batch Processing.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="batch-processing-using-jupyter-and-python">
+<h1>Batch Processing using Jupyter and Python<a class="headerlink" href="#batch-processing-using-jupyter-and-python" title="Permalink to this headline">¶</a></h1>
+<p>Some data management or metadata tasks can best be tackled by writing a script
+to automate processes that are repetitive or repeated regularly.
+Since the Metadata Wizard is built on, and ships with a fairly complete
+Python stack, we allow advanced users to leverage this functionality using a Jupyter Notebook.</p>
+<div class="section" id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<p>Use of scripting, as described below, will require a basic knowledge of
+the <a class="reference external" href="https://www.python.org/">Python programing language</a> as well as how to use <a class="reference external" href="http://jupyter.org/">Jupyter Notebooks</a>.
+There are many excellent resources for learning these powerful tools such as:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://swcarpentry.github.io/python-novice-inflammation/">Software Carpentry</a></li>
+<li><a class="reference external" href="https://www.codecademy.com/learn/learn-python">Code Acadamy</a></li>
+<li><a class="reference external" href="https://developers.google.com/edu/python/">Google’s Python Class</a></li>
+</ul>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="launching-jupyter-from-the-wizard">
+<h2>Launching Jupyter from the Wizard<a class="headerlink" href="#launching-jupyter-from-the-wizard" title="Permalink to this headline">¶</a></h2>
+<p>A live instance of a Jupyter Notebook kernel can be launched directly from the Metadata Wizard 2.0 application by clicking <strong>Launch Jupyter</strong> in the <strong>Advanced</strong> menu.</p>
+<div class="figure" id="id1">
+<img alt="Launch Jupyter Menu Item" src="../_images/JupyterLaunchMenu.png" />
+<p class="caption"><span class="caption-text">Menu item to Launch Jupyter</span></p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<p>The user will be asked where they would like to open Jupyter.  If you are just
+getting started or want to take a look at the examples, choose the default directory.
+If you are working on a project, you can browse to a different directory.
+The Notebooks you produce will get written to this location.</p>
+<div class="figure" id="id2">
+<img alt="Launch Jupyter Browse" src="../_images/JupyterBrowse.png" />
+<p class="caption"><span class="caption-text">Prompt for choosing where to start the Notebook server</span></p>
+</div>
+</div>
+<div class="section" id="example-notebooks">
+<h2>Example Notebooks<a class="headerlink" href="#example-notebooks" title="Permalink to this headline">¶</a></h2>
+<p>The Metadata Wizard 2.0 ships with a set of example Notebooks that are intended to
+provide a demonstration of how one might use these capabilities.  Each is self
+documenting, in that it contains internal explanations of the code contained in
+it’s cells.</p>
+<p><strong>pymdwizard scripting (Start Here).ipynb</strong>  – Provides a introduction to
+general opening, searching, editing, saving, and validation of FGDC metadata.
+It uses the pymdwizard’s core functionality and is probably where most users
+will want to start.</p>
+<p><strong>Report on all metadata in a directory.ipynb</strong>  – Provides an example of how one might
+generate a report on all the metadata contained in a directory including the FGDC schema
+errors in each file.</p>
+<p><strong>FGDC ITIS Taxonomy generation.ipynb</strong>  – Provides an example of how to use the
+core functionality to search the Integrated Taxonomic Information System (ITIS)
+by scientific and common name and generate FGDC taxonomy sections in code.</p>
+<p><strong>BatchUpdateAuthorsDatesEtc.ipynb</strong>  – Provides a real world example of how the
+above techniques were used to update a large batch of existing metadata records.</p>
+<p><strong>—TBD—.ipynb</strong>  – Provides a real world example of how we extended the
+above techniques to generate metadata for multiple datasets and moved the associated
+data and metadata up to an online repository (A Data Release on the USGS ScienceBase system).</p>
+</div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="Changing Your Template.html" class="btn btn-neutral" title="Changing Your Template" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../_static/jquery.js"></script>
+      <script type="text/javascript" src="../_static/underscore.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>

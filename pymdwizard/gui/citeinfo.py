@@ -38,18 +38,28 @@ nor shall the fact of distribution constitute any such warranty, and no
 responsibility is assumed by the USGS in connection therewith.
 ------------------------------------------------------------------------------
 """
+import sys
 from copy import deepcopy
+from lxml import etree
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QDialog
+from PyQt5.QtCore import Qt
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
+from pymdwizard.core import datacite
 
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_citeinfo
 from pymdwizard.gui.fgdc_date import FGDCDate
 from pymdwizard.gui.repeating_element import RepeatingElement
+from pymdwizard.gui.ui_files import UI_DOICiteinfoImporter
 
+try:
+    import habanero
+    hananero_installed = True
+except ImportError:
+    hananero_installed = False
 
 class Citeinfo(WizardWidget): #
 
@@ -60,6 +70,7 @@ class Citeinfo(WizardWidget): #
         self.include_lwork = include_lwork
         self.schema = 'bdp'
         WizardWidget.__init__(self, parent=parent)
+        self.doi_lookup = None
 
     def build_ui(self, ):
         """
@@ -107,6 +118,9 @@ class Citeinfo(WizardWidget): #
 
         self.setup_dragdrop(self)
 
+        if not hananero_installed:
+            self.ui.btn_import_doi.hide()
+
     def connect_events(self):
         """
         Connect the appropriate GUI components with the corresponding functions
@@ -119,6 +133,109 @@ class Citeinfo(WizardWidget): #
         self.ui.radio_seriesyes.toggled.connect(self.include_seriesext_change)
         self.ui.radio_pubinfoyes.toggled.connect(self.include_pubext_change)
 
+        self.ui.btn_import_doi.clicked.connect(self.get_doi_citation)
+
+    def get_doi_citation(self):
+        if self.doi_lookup is None:
+            self.doi_lookup = QDialog(parent=self)
+            self.doi_lookup_ui = UI_DOICiteinfoImporter.Ui_ImportUsgsUser()
+            self.doi_lookup_ui.setupUi(self.doi_lookup)
+            self.doi_lookup_ui.btn_OK.clicked.connect(self.add_doi)
+            self.doi_lookup_ui.btn_cancel.clicked.connect(self.cancel)
+            utils.set_window_icon(self.doi_lookup)
+        self.doi_lookup.show()
+
+    def add_doi(self):
+        doi = self.doi_lookup_ui.le_doi.text()
+        try:
+            citeinfo = datacite.get_doi_citation(doi)
+
+            if citeinfo is None:
+                msgbox = QMessageBox(self)
+                utils.set_window_icon(msgbox)
+                msgbox.setIcon(QMessageBox.Warning)
+                msg = "'{}' Not Found on DataCite".format(doi)
+                msg += '\nMake sure the DOI is valid and active.'
+                msgbox.setText(msg)
+                msgbox.setInformativeText("No matching citation found")
+                msgbox.setWindowTitle("DOI Not Found")
+                msgbox.setStandardButtons(QMessageBox.Ok)
+                msgbox.exec_()
+            else:
+                self._from_xml(citeinfo.to_xml())
+        except:
+            msg = "We ran into a problem creating a citeinfo element from that DOI({})".format(doi)
+            msg += "Check the DOI and/or manually create the citation for it"
+            QMessageBox.warning(self, "Problem DOI", msg)
+        self.cancel()
+
+    def cancel(self):
+        self.doi_lookup.deleteLater()
+        self.doi_lookup = None
+
+    def dragEnterEvent(self, e):
+        """
+        Only accept Dragged items that can be converted to an xml object with
+        a root tag called in our list of acceptable_tags
+        Parameters
+        ----------
+        e : qt event
+        Returns
+        -------
+        """
+        mime_data = e.mimeData()
+
+        if e.mimeData().hasUrls():
+            if 'doi' in e.mimeData().urls()[0].url().lower():
+                e.accept()
+        elif e.mimeData().hasFormat('text/plain'):
+            if self.is_doi_str(mime_data.text()):
+                e.accept()
+            else:
+                parser = etree.XMLParser(ns_clean=True, recover=True, encoding='utf-8')
+                element = etree.fromstring(mime_data.text(), parser=parser)
+                if element is not None and element.tag in self.acceptable_tags:
+                    e.accept()
+        else:
+            e.ignore()
+
+    def is_doi_str(self, string):
+        return datacite.clean_doi(string).lower().strip().startswith('doi:')
+
+    def dropEvent(self, e):
+        """
+        Updates the form with the contents of an xml node dropped onto it.
+        Parameters
+        ----------
+        e : qt event
+        Returns
+        -------
+        None
+        """
+        try:
+            e.setDropAction(Qt.CopyAction)
+            e.accept()
+            mime_data = e.mimeData()
+            if mime_data.hasUrls() or \
+                    self.is_doi_str(mime_data.text()):
+                if self.is_doi_str(mime_data.text()):
+                    doi = mime_data.text()
+                else:
+                    doi = e.mimeData().urls()[0].url()
+                try:
+                    citeinfo = datacite.get_doi_citation(doi)
+                    self._from_xml(citeinfo.to_xml())
+                except:
+                    msg = "We ran into a problem creating a citeinfo element from that DOI({})".format(doi)
+                    msg += "Check the DOI and/or manually create the citation for it"
+                    QMessageBox.warning(self, "Problem DOI", msg)
+            else:
+                element = xml_utils.string_to_node(mime_data.text())
+
+                self._from_xml(element)
+        except:
+            e = sys.exc_info()[0]
+            print('problem drop', e)
 
 
     def include_seriesext_change(self, b):
@@ -213,10 +330,10 @@ class Citeinfo(WizardWidget): #
             publish = xml_utils.xml_node('publish', parent_node=pubinfo,
                                          text=self.ui.fgdc_publish.text())
 
-        if self.original_xml is not None:
-            othercit = xml_utils.search_xpath(self.original_xml, 'citeinfo/othercit')
-            if othercit is not None:
-                citeinfo.append(deepcopy(othercit))
+        if self.ui.fgdc_othercit.toPlainText():
+            othercit = xml_utils.xml_node("othercit",
+                                         self.ui.fgdc_othercit.toPlainText(),
+                                         parent_node=citeinfo)
 
         for onlink in self.onlink_list.get_widgets():
             if onlink.added_line.text() != '':
@@ -244,6 +361,7 @@ class Citeinfo(WizardWidget): #
         None
         """
         self.original_xml = citeinfo
+        self.clear_widget()
         try:
             if citeinfo.tag == "citation":
                 citeinfo = citeinfo.xpath('citeinfo')[0]
@@ -267,6 +385,8 @@ class Citeinfo(WizardWidget): #
             utils.populate_widget_element(self.ui.pubdate_widget.ui.fgdc_caldate,
                                           citeinfo, 'pubdate')
             utils.populate_widget_element(self.ui.fgdc_title, citeinfo, 'title')
+
+            utils.populate_widget_element(self.ui.fgdc_othercit, citeinfo, 'othercit')
 
             self.onlink_list.clear_widgets()
             if citeinfo.findall("onlink"):

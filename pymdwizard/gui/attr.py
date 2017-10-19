@@ -152,7 +152,6 @@ class Attr(WizardWidget):  #
                 self._domain_content[0] = cur_xml
 
     def populate_domain_content(self, which='guess'):
-
         self.clear_domain()
 
         if which == 'guess':
@@ -188,8 +187,14 @@ class Attr(WizardWidget):  #
             else:
                 self.domain.populate_from_list(uniques)
         elif self.series is not None and index == 1:
-            self.domain.ui.fgdc_rdommin.setText(str(self.series.min()))
-            self.domain.ui.fgdc_rdommax.setText(str(self.series.max()))
+            try:
+                self.domain.ui.fgdc_rdommin.setText(str(self.series.min()))
+            except:
+                self.domain.ui.fgdc_rdommin.setText('')
+            try:
+                self.domain.ui.fgdc_rdommax.setText(str(self.series.max()))
+            except:
+                self.domain.ui.fgdc_rdommax.setText('')
 
         self.ui.attrdomv_contents.layout().addWidget(self.domain)
 
@@ -205,7 +210,7 @@ class Attr(WizardWidget):  #
             self.active = True
             self.animation = QPropertyAnimation(self, b"minimumSize")
             self.animation.setDuration(200)
-            self.animation.setEndValue(QSize(325, self.height()))
+            self.animation.setEndValue(QSize(345, self.height()))
             self.animation.start()
             self.ui.attrdomv_contents.show()
             self.ui.place_holder.hide()
@@ -234,37 +239,6 @@ class Attr(WizardWidget):  #
             if self.parent_ui is not None:
                 self.parent_ui.minimize_children()
             self.supersize_me()
-
-    # def eventFilter(self, obj, event):
-    #     """
-    #
-    #     Parameters
-    #     ----------
-    #     obj
-    #     event
-    #
-    #     Returns
-    #     -------
-    #
-    #     """
-    #     # you could be doing different groups of actions
-    #     # for different types of widgets and either filtering
-    #     # the event or not.
-    #     # Here we just check if its one of the layout widget
-    #     self.ef += 1
-    #     print("ef:{}".format(self.ef))
-    #     if event.type() == event.MouseButtonPress or \
-    #             event.type() == 207:
-    #
-    #         if self.active:
-    #             #we're already big so do nothing
-    #             pass
-    #         else:
-    #             if self.parent_ui is not None:
-    #                 self.parent_ui.minimize_children()
-    #             self.supersize_me()
-    #
-    #     return super(Attr, self).eventFilter(obj, event)
 
     def contextMenuEvent(self, event):
 

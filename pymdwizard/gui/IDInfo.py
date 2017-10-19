@@ -42,13 +42,7 @@ import sys
 from lxml import etree
 from copy import deepcopy
 
-
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QTableView
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle, QSpacerItem
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint, Qt
+from PyQt5.QtWidgets import QHBoxLayout, QSizePolicy
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
@@ -58,17 +52,17 @@ from pymdwizard.gui.ui_files import UI_IdInfo
 from pymdwizard.gui.PointOfContact import ContactInfoPointOfContact
 from pymdwizard.gui.Taxonomy import Taxonomy
 from pymdwizard.gui.Keywords import Keywords
-from pymdwizard.gui.AccessConstraints import AccessConstraints
-from pymdwizard.gui.UseConstraints import UseConstraints
+from pymdwizard.gui.accconst import Accconst
+from pymdwizard.gui.useconst import Useconst
 from pymdwizard.gui.Status import Status
 from pymdwizard.gui.timeperd import Timeperd
 from pymdwizard.gui.citeinfo import Citeinfo
-from pymdwizard.gui.DataCredit import DataCredit
+from pymdwizard.gui.datacred import Datacred
 from pymdwizard.gui.descript import Descript
 from pymdwizard.gui.supplinf import SupplInf
-from pymdwizard.gui.abstract import Abstract
+from pymdwizard.gui.native import Native
 from pymdwizard.gui.purpose import Purpose
-from pymdwizard.gui.crossref import CrossRef
+from pymdwizard.gui.crossref_list import Crossref_list
 
 class IdInfo(WizardWidget):
 
@@ -92,17 +86,19 @@ class IdInfo(WizardWidget):
         self.ptcontac = ContactInfoPointOfContact(parent=self)
         self.taxonomy = Taxonomy(parent=self)
         self.keywords = Keywords(parent=self)
-        self.accconst = AccessConstraints(parent=self)
-        self.useconst = UseConstraints(parent=self)
+        self.accconst = Accconst(parent=self)
+        self.useconst = Useconst(parent=self)
         self.status = Status(parent=self)
         self.timeperd = Timeperd(parent=self)
         self.citation = Citeinfo(parent=self)
-        self.datacredit = DataCredit(parent=self)
+        self.citation.ui.btn_import_doi.hide()
+        self.datacredit = Datacred(parent=self)
 
         self.descript = Descript(parent=self)
 
         self.purpose = Purpose(parent=self)
         self.supplinf = SupplInf(parent=self)
+        self.native = Native(parent=self)
 
         self.ui.fgdc_citation.layout().addWidget(self.citation)
 
@@ -110,6 +106,7 @@ class IdInfo(WizardWidget):
         time_hbox = QHBoxLayout()
         time_hbox.addWidget(self.status)
         time_hbox.addWidget(self.timeperd)
+        self.ui.two_column_left.layout().insertWidget(0, self.native)
         self.ui.two_column_left.layout().insertLayout(0, time_hbox)
         self.ui.two_column_left.layout().insertWidget(0, self.datacredit)
         self.ui.two_column_left.layout().insertWidget(0, self.taxonomy)
@@ -117,13 +114,14 @@ class IdInfo(WizardWidget):
         self.ui.two_column_left.layout().insertWidget(0, self.useconst)
         self.ui.two_column_left.layout().insertWidget(0, self.accconst)
 
+
         self.ui.two_column_right.layout().insertWidget(0, self.supplinf)
         self.ui.two_column_right.layout().insertWidget(0, self.keywords)
         self.ui.two_column_right.layout().insertWidget(0, self.purpose)
         self.ui.two_column_right.layout().insertWidget(0, self.descript)
 
-        self.crossref = CrossRef()
-        self.ui.fgdc_crossref.layout().addWidget(self.crossref)
+        self.crossref_list = Crossref_list()
+        self.ui.help_crossref.layout().addWidget(self.crossref_list)
 
 
     def dragEnterEvent(self, e):
@@ -230,10 +228,11 @@ class IdInfo(WizardWidget):
                 native.tail = None
                 idinfo_node.append(deepcopy(native))
 
-            crossref_list = self.crossref._to_xml()
-            for crossref in crossref_list:
-                crossref.tail = None
-                idinfo_node.append(deepcopy(crossref))
+            if self.crossref_list.has_content():
+                crossref_list = self.crossref_list._to_xml()
+                for crossref in crossref_list:
+                    crossref.tail = None
+                    idinfo_node.append(deepcopy(crossref))
 
             tools = xml_utils.search_xpath(self.original_xml, 'tool', only_first=False)
             for tool in tools:
@@ -298,10 +297,13 @@ class IdInfo(WizardWidget):
         if datacred is not None:
             self.datacredit._from_xml(datacred)
 
+        native = xml_utils.search_xpath(xml_idinfo, 'native')
+        if native is not None:
+            self.native._from_xml(native)
+
         crossref = xml_utils.search_xpath(xml_idinfo, 'crossref')
         if crossref is not None:
-            self.crossref._from_xml(xml_idinfo)
-
+            self.crossref_list._from_xml(xml_idinfo)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import textwrap
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -11,18 +12,33 @@ class GrowingTextEdit(QPlainTextEdit):
         super(GrowingTextEdit, self).__init__(*args, **kwargs)
         self.document().contentsChanged.connect(self.sizeChange)
 
-        self.heightMin = 25
-        self.heightMax = 400
+        self.heightMin = 45
+        self.heightMax = 300
 
-        self.setMinimumHeight(self.heightMin)
+        self.setFixedHeight(self.heightMin)
 
     def sizeChange(self):
-        docHeight = self.document().size().height()
-        factor = 14
-        if self.heightMin <= docHeight*factor <= self.heightMax:
-            self.setMinimumHeight(docHeight*factor)
-        elif docHeight*factor > self.heightMax:
-            self.setMinimumHeight(self.heightMax)
+        width = max(self.width(), 500)
+
+        char_width = int(width/5.25)
+        contents = self.toPlainText()
+        lines = textwrap.wrap(contents, char_width)
+        adj_doc_height = (len(lines) + contents.count('\n')) * 13 + 20
+
+        if adj_doc_height <= self.heightMin:
+            self.setFixedHeight(self.heightMin)
+            size_hint = self.heightMin
+        elif self.heightMin <= adj_doc_height <= self.heightMax:
+            self.setFixedHeight(adj_doc_height)
+            size_hint = adj_doc_height
+        elif adj_doc_height > self.heightMax:
+            self.setFixedHeight(self.heightMax)
+            size_hint = self.heightMax
+
+        try:
+            self.item.setSizeHint(QSize(self.width(), size_hint + 100))
+        except:
+            pass
 
 
 if __name__ == "__main__":

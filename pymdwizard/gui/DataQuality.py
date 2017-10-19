@@ -42,13 +42,6 @@ import sys
 from copy import deepcopy
 from lxml import etree
 
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QTableView
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle, QSpacerItem
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint, Qt
-
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
 
@@ -79,6 +72,7 @@ class DataQuality(WizardWidget):
 
         self.attraccr = AttributeAccuracy(parent=self)
         self.logic = LogicalAccuracy(parent=self)
+        # self.complete = Completeness(parent=self)
         self.complete = Completeness(parent=self)
         self.posacc = PositionalAccuracy(parent=self)
         self.sourceinput = SourceInput(parent=self)
@@ -92,7 +86,6 @@ class DataQuality(WizardWidget):
 
         self.ui.bottom_layout.layout().addWidget(self.sourceinput)
         self.ui.fgdc_lineage.layout().addWidget(self.procstep)
-
 
     def dragEnterEvent(self, e):
         """
@@ -118,6 +111,7 @@ class DataQuality(WizardWidget):
     def clear_widget(self):
         self.sourceinput.clear_widget()
         WizardWidget.clear_widget(self)
+        self.complete.ui.fgdc_complete.sizeChange()
 
     def _to_xml(self):
         # add code here to translate the form into xml representation

@@ -64,8 +64,10 @@ from pymdwizard.gui.ui_files import UI_MainWindow
 from pymdwizard.gui.MetadataRoot import MetadataRoot
 from pymdwizard.core import xml_utils, utils, fgdc_utils, review_utils
 from pymdwizard.gui.Preview import Preview
+from pymdwizard.gui.error_list import ErrorList
 
 import sip
+
 
 class PyMdWizardMainForm(QMainWindow):
 
@@ -112,8 +114,6 @@ class PyMdWizardMainForm(QMainWindow):
             self.ui.menuRecent_Files.addAction(self.recent_file_actions[i])
         self.update_recent_file_actions()
 
-        self.ui.menuErrors.clear()
-
         settings = QSettings('USGS', 'pymdwizard')
         template_fname = settings.value('template_fname')
 
@@ -125,6 +125,13 @@ class PyMdWizardMainForm(QMainWindow):
             self.ui.generate_review.setEnabled(False)
 
         self.setAcceptDrops(True)
+
+        self.error_list = ErrorList(main_form=self)
+        self.error_list_dialog = QDialog(self)
+        self.error_list_dialog.setWindowTitle('FGDC Validation Errors')
+        self.error_list_dialog.setLayout(self.error_list.layout())
+        self.error_list_dialog.resize(600, 400)
+
 
     def connect_events(self):
         """
@@ -145,8 +152,10 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionBrowseTemplate.triggered.connect(self.set_template)
         self.ui.actionRestoreBuiltIn.triggered.connect(self.restore_template)
         self.ui.actionLaunch_Jupyter.triggered.connect(self.launch_jupyter)
-        self.ui.actionUpdate.triggered.connect(self.update_from_github)
         self.ui.generate_review.triggered.connect(self.generate_review_doc)
+        self.ui.actionLaunch_Help.triggered.connect(self.launch_help)
+        self.ui.actionCheck_for_Updates.triggered.connect(self.update_from_github)
+        self.ui.actionAbout.triggered.connect(self.about)
 
     def open_recent_file(self):
         """
@@ -372,6 +381,12 @@ class PyMdWizardMainForm(QMainWindow):
 
         if template_fname is None:
             template_fname = utils.get_resource_path('CSDGM_Template.xml')
+        elif not os.path.exists(template_fname):
+            msg = "The previous template file specified, {}, could not be found.".format(template_fname)
+            msg += "\nCheck that the file has not beed deleted, renamed or moved."
+            msg += "Defaulting to the built in template.".format(template_fname)
+            QMessageBox.warning(self, "Template file missing", msg)
+            template_fname = utils.get_resource_path('CSDGM_Template.xml')
 
         self.load_file_content(template_fname)
         self.cur_fname = ''
@@ -506,8 +521,6 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
-        self.ui.menuErrors.clear()
-
         annotation_lookup = fgdc_utils.get_fgdc_lookup()
 
         for widget in self.error_widgets:
@@ -524,6 +537,8 @@ class PyMdWizardMainForm(QMainWindow):
                     widget.setToolTip('')
 
         self.error_widgets = []
+        self.error_list.clear_errors()
+        self.error_list_dialog.hide()
 
     def validate(self):
         """
@@ -535,6 +550,8 @@ class PyMdWizardMainForm(QMainWindow):
         None
         """
 
+
+        self.error_list_dialog.show()
         if self.metadata_root.schema == 'bdp':
             xsl_fname = utils.get_resource_path('FGDC/BDPfgdc-std-001-1998-annotated.xsd')
         else:
@@ -571,18 +588,14 @@ class PyMdWizardMainForm(QMainWindow):
 
         widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
         self.metadata_root.add_children(self.metadata_root.spatial_tab, widget_lookup.metadata.idinfo)
+        self.metadata_root.add_children(self.metadata_root.dataqual.sourceinput, widget_lookup.metadata.dataqual.lineage)
         error_count = 0
         for error in errors:
 
             try:
                 xpath, error_msg, line_num = error
                 if xpath not in marked_errors:
-
-                    action = QAction(self, visible=True)
-                    action.setText(error_msg)
-                    action.setData(xpath)
-                    action.triggered.connect(self.goto_error)
-                    self.ui.menuErrors.addAction(action)
+                    self.error_list.add_error(error_msg, xpath)
                     marked_errors.append(xpath)
 
                     # widget = self.metadata_root.get_widget(xpath)
@@ -606,10 +619,11 @@ class PyMdWizardMainForm(QMainWindow):
             msg = "There are {} errors in this record".format(error_count)
             self.statusBar().showMessage(msg, 20000)
             msg += "\n\n These errors are highlighted in red in the form below."
-            msg += "\n\n These errors are also listed in the Validation Menu's Errors submenu item above."
+            msg += "\n\n These errors are also listed in the Validation Errors Form that just popped up."
             msg += "\n Clicking each error will take you to the section it is contained in."
             msg += "\n Note that some highlighed errors can be in collapsed items, scrolled out of view, or in non-selected tabs"
             QMessageBox.warning(self, "Validation", msg)
+            self.error_list_dialog.show()
         else:
             msg = "Congratulations there were No FGDC Errors!"
             self.statusBar().showMessage(msg, 20000)
@@ -629,7 +643,7 @@ class PyMdWizardMainForm(QMainWindow):
         None
         """
 
-        xpath = self.sender().data()
+        xpath = sender.data(1)
         section = xpath.split('/')[1]
 
         if section == 'idinfo':
@@ -658,7 +672,7 @@ class PyMdWizardMainForm(QMainWindow):
         widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
         bad_widget = widget_lookup.xpath_march(xpath, as_list=True)
         self.last_highlight = bad_widget[0].widget
-        self.highlight_error(bad_widget[0].widget, self.sender().text(), superhot=True)
+        self.highlight_error(bad_widget[0].widget, sender.text(), superhot=True)
 
     def highlight_error(self, widget, error_msg, superhot=False):
         """
@@ -791,7 +805,7 @@ class PyMdWizardMainForm(QMainWindow):
             e.ignore()
 
     def dragMoveEvent(self, e):
-        if e.mimeData().hasUrls:
+        if e.mimeData().hasUrls() and e.mimeData().urls()[0].isLocalFile():
             e.accept()
         else:
             e.ignore()
@@ -839,9 +853,30 @@ class PyMdWizardMainForm(QMainWindow):
 
         self.preview_dialog.exec_()
 
+    def launch_help(self):
+        this_fname = os.path.realpath(__file__)
+        gui_dname = os.path.dirname(this_fname)
+        pmdwiz_dname = os.path.dirname(gui_dname)
+        root_dname = os.path.dirname(pmdwiz_dname)
+        help_html = os.path.join(root_dname, 'docs', 'html_output', 'index.html')
+
+        self.preview = Preview(url=help_html)
+        os.path.dirname(this_fname)
+
+        self.preview_dialog = QDialog(self)
+        self.preview_dialog.setWindowTitle('MetadataWizard Help')
+        self.preview_dialog.setLayout(self.preview.layout())
+
+        self.preview_dialog.exec_()
+
     def generate_review_doc(self):
         if self.cur_fname:
             out_fname = self.cur_fname[:-4] + '_REVIEW.docx'
+
+            if self.metadata_root.schema == 'bdp':
+                which = 'bdp'
+            else:
+                which = 'fgdc'
 
             if time.time() - self.last_updated > 4:
                 msg = "Would you like to save the current file before continuing?"
@@ -854,7 +889,8 @@ class PyMdWizardMainForm(QMainWindow):
                     return
             try:
                 cur_content = xml_utils.XMLRecord(self.cur_fname)
-                review_utils.generate_review_report(cur_content, out_fname)
+                review_utils.generate_review_report(cur_content, out_fname,
+                                                    which=which)
 
                 import subprocess
                 os.startfile('"{}"'.format(out_fname))
@@ -893,6 +929,8 @@ class PyMdWizardMainForm(QMainWindow):
             jupyter_dname = QFileDialog.getExistingDirectory(self, "Select Directory to launch Jupyter from", last_jupyter_dname)
             if jupyter_dname:
                 settings.setValue('last_jupyter_dname', jupyter_dname)
+            else:
+                return
         else:
             return
 
@@ -900,11 +938,30 @@ class PyMdWizardMainForm(QMainWindow):
         jupyterexe = os.path.join(root_dir, "Python35_64", "scripts", "jupyter.exe")
 
         if os.path.exists(jupyterexe) and os.path.exists(root_dir):
-            p = Popen([jupyterexe, 'notebook'], cwd=jupyter_dname)
+
+            my_env = os.environ.copy()
+            my_env["PYTHONPATH"] = os.path.join(root_dir, "Python35_64")
+
+            p = Popen([jupyterexe, 'notebook'], cwd=jupyter_dname, env=my_env)
 
             msg = 'Jupyter launching...\nJupyter will start momentarily in a new tab in your default internet browser.'
 
             QMessageBox.information(self, "Launching Jupyter", msg)
+
+    def about(self):
+
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("About")
+        msgbox.setTextFormat(Qt.RichText)
+
+
+        msg = 'The MetadataWizard was developed by the USGS Fort Collins Science Center<br>'
+        msg += 'With help from the USGS Council for Data integration (CDI) and<br>'
+        msg += 'and the USGS Core Science Analytics, Synthesis, and Libraries (CSAS&L)<br>'
+        msg += "<br> Project page: <a href='https://github.com/usgs/fort-pymdwizard'>https://github.com/usgs/fort-pymdwizard</a>"
+        msg += '<br><br>Contact: Colin Talbert at talbertc@usgs.gov'
+        msgbox.setText(msg)
+        msgbox.exec()
 
     def update_from_github(self):
         from subprocess import check_output

@@ -32,20 +32,15 @@ responsibility is assumed by the USGS in connection therewith.
 """
 import os
 import pickle
-from lxml import etree
 
-import pandas as pd
-
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication, QDialog, QMessageBox, QFileDialog
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QComboBox, QTableView, QRadioButton, QInputDialog
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout, QPlainTextEdit, QStackedWidget, QTabWidget, QDateEdit, QListWidget
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle, QGridLayout, QScrollArea, QListWidgetItem, QAbstractItemView
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint, QDate, QSettings
+from PyQt5.QtWidgets import QMessageBox, QFileDialog
+from PyQt5.QtWidgets import QInputDialog
+from PyQt5.QtCore import QSettings
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
 from pymdwizard.core import data_io
+from pymdwizard.core import spatial_utils
 from pymdwizard.core.spatial_utils import get_raster_attribute_table
 
 from pymdwizard.gui.wiz_widget import WizardWidget
@@ -59,6 +54,7 @@ class Detailed(WizardWidget):  #
     acceptable_tags = ['detailed']
 
     def __init__(self, remove_function=None, parent=None):
+        self.EA = parent
         WizardWidget.__init__(self, parent=parent)
         if remove_function is None:
             self.ui.btn_remove.hide()
@@ -82,6 +78,7 @@ class Detailed(WizardWidget):  #
         self.setup_dragdrop(self)
 
         self.ui.btn_browse.clicked.connect(self.browse)
+        self.ui.fgdc_enttypl.textChanged.connect(self.update_tooltip)
 
     def browse(self):
         settings = QSettings('USGS', 'pymdwizard')
@@ -104,6 +101,14 @@ class Detailed(WizardWidget):  #
                 import traceback
                 msg = "Could not extract data from file %s:\n%s." % (fname, traceback.format_exc())
                 QMessageBox.warning(self, "Data file error", msg)
+
+    def update_tooltip(self):
+        try:
+            cur_text = self.ui.fgdc_enttypl.text()
+            cur_index = self.EA.ui.fgdc_eainfo.currentIndex()
+            self.EA.ui.fgdc_eainfo.setTabToolTip(cur_index, cur_text)
+        except:
+            pass
 
     def update_displayed_label(self):
         pass
@@ -141,6 +146,24 @@ class Detailed(WizardWidget):  #
             df = data_io.read_data(fname)
             self.attributes.load_df(df)
 
+            fid_attr = self.attributes.get_attr('FID')
+            if fid_attr is not None:
+                fid_attr.populate_domain_content(3)
+                fid_attr.ui.fgdc_attrdef.setPlainText('Internal feature number.')
+                utils.set_text(fid_attr.ui.fgdc_attrdefs, 'ESRI')
+                fid_attr.domain.ui.fgdc_udom.setPlainText("Sequential unique whole numbers that are automatically generated.")
+                fid_attr.regularsize_me()
+                fid_attr.supersize_me()
+            shape_attr = self.attributes.get_attr('Shape')
+            if shape_attr is not None:
+                shape_attr.populate_domain_content(3)
+                shape_attr.ui.fgdc_attrdef.setPlainText('Feature geometry.')
+                utils.set_text(shape_attr.ui.fgdc_attrdefs, 'ESRI')
+                shape_attr.domain.ui.fgdc_udom.setPlainText("Coordinates defining the features.")
+                shape_attr.store_current_content()
+                shape_attr.supersize_me()
+                shape_attr.regularsize_me()
+
         elif ext.lower() in ['.xlsm', '.xlsx', '.xls']:
             if sheet_name is None:
                 sheets = data_io.get_sheet_names(fname)
@@ -158,7 +181,13 @@ class Detailed(WizardWidget):  #
         elif ext.lower() in ['.tif', '.grd', '.png', '.img', '.jpg', '.hdr',
                              '.bmp', '.adf']:
             self.ui.fgdc_enttypl.setText(shortname)
-            self.ui.fgdc_enttypd.setPlainText('Raster geospatial data file.')
+
+            num_bands = spatial_utils.get_band_count(fname)
+            if num_bands == 1:
+                self.ui.fgdc_enttypd.setPlainText('Raster geospatial data file.')
+            else:
+                self.ui.fgdc_enttypd.setPlainText('{} band raster geospatial data file.'.format(num_bands))
+
             df = get_raster_attribute_table(fname)
             self.attributes.load_df(df)
             oid_attr = self.attributes.get_attr('OID')
@@ -180,10 +209,13 @@ class Detailed(WizardWidget):  #
         elif ext.lower() == ".p":
             p = pickle.load(open(fname, "rb"), encoding='bytes')
 
-            self.ui.fgdc_enttypl.setText('{}'.format(shortname[:-2]))
-            self.ui.fgdc_enttypd.setPlainText('Geospatial Dataset')
-
-            self.attributes.load_pickle(p)
+            if self.original_xml is not None:
+                original_content = xml_utils.XMLNode(self.original_xml)
+                self._from_xml(self.original_xml)
+            else:
+                self.ui.fgdc_enttypl.setText('{}'.format(shortname[:-2]))
+                self.ui.fgdc_enttypd.setPlainText('Geospatial Dataset')
+                self.attributes.load_pickle(p)
         else:
             msg = "Can only read '.csv', '.shp', and Excel files here"
             QMessageBox.warning(self, "Unsupported file format", msg)
@@ -250,6 +282,7 @@ class Detailed(WizardWidget):  #
         """
         try:
             if detailed.tag == 'detailed':
+                self.original_xml = detailed
                 utils.populate_widget(self, detailed)
                 self.attributes._from_xml(detailed)
             else:
