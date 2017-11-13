@@ -45,14 +45,15 @@ GenericTemplate = os.path.join(os.path.dirname(sys.argv[0]), "GenericFGDCTemplat
 #'Entity and Attribute Builder' tool and 'Metadata Editor' will be shipped with Toolbox.
 
 installDir = os.path.dirname(os.path.realpath(__file__))
-root_dir = os.path.dirname(os.path.dirname(installDir))
+#root_dir = os.path.dirname(os.path.dirname(installDir))
+root_dir = r'C:\Python27\Anaconda2\envs\pymd'
 arcpy.AddWarning("installDir :" + installDir)
 arcpy.AddWarning("root_dir :" + root_dir)
 
-pymdwiz_dir = os.path.join(root_dir, 'pymdwizard')
+pymdwiz_dir = r'C:\Python27\Anaconda2\envs\pymd\Lib\site-packages\fort-pymdwizard'
 arcpy.AddWarning("pymdwiz_dir :" + pymdwiz_dir)
 
-python_dir = os.path.join(root_dir, 'Python35_64')
+python_dir = root_dir
 if not os.path.exists(python_dir):
     python_dir = os.path.join(root_dir, 'Python36_64')
 
