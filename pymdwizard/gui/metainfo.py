@@ -1,21 +1,43 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 """
+The MetadataWizard(pymdwizard) software was developed by the
+U.S. Geological Survey Fort Collins Science Center.
+See: https://github.com/usgs/fort-pymdwizard for current project source code
+See: https://usgs.github.io/fort-pymdwizard/ for current user documentation
+See: https://github.com/usgs/fort-pymdwizard/tree/master/examples
+    for examples of use in other scripts
+
 License:            Creative Commons Attribution 4.0 International (CC BY 4.0)
                     http://creativecommons.org/licenses/by/4.0/
 
 PURPOSE
 ------------------------------------------------------------------------------
-Provide a pyqt widget for a Identification Information <idinfo> section
+Provide a pyqt widget for the FGDC component with a shortname matching this
+file's name.
 
 
 SCRIPT DEPENDENCIES
 ------------------------------------------------------------------------------
-    None
+    This script is part of the pymdwizard package and is not intented to be
+    used independently.  All pymdwizard package requirements are needed.
+    
+    See imports section for external packages used in this script as well as
+    inter-package dependencies
 
 
 U.S. GEOLOGICAL SURVEY DISCLAIMER
 ------------------------------------------------------------------------------
+This software has been approved for release by the U.S. Geological Survey 
+(USGS). Although the software has been subjected to rigorous review,
+the USGS reserves the right to update the software as needed pursuant to
+further analysis and review. No warranty, expressed or implied, is made by
+the USGS or the U.S. Government as to the functionality of the software and
+related material nor shall the fact of release constitute any such warranty.
+Furthermore, the software is released on condition that neither the USGS nor
+the U.S. Government shall be held liable for any damages resulting from
+its authorized or unauthorized use.
+
 Any use of trade, product or firm names is for descriptive purposes only and
 does not imply endorsement by the U.S. Geological Survey.
 
@@ -23,30 +45,10 @@ Although this information product, for the most part, is in the public domain,
 it also contains copyrighted material as noted in the text. Permission to
 reproduce copyrighted items for other than personal use must be secured from
 the copyright owner.
-
-Although these data have been processed successfully on a computer system at
-the U.S. Geological Survey, no warranty, expressed or implied is made
-regarding the display or utility of the data on any other system, or for
-general or scientific purposes, nor shall the act of distribution constitute
-any such warranty. The U.S. Geological Survey shall not be held liable for
-improper or incorrect use of the data described and/or contained herein.
-
-Although this program has been used by the U.S. Geological Survey (USGS), no
-warranty, expressed or implied, is made by the USGS or the U.S. Government as
-to the accuracy and functioning of the program and related program material
-nor shall the fact of distribution constitute any such warranty, and no
-responsibility is assumed by the USGS in connection therewith.
 ------------------------------------------------------------------------------
 """
-import sys
-from lxml import etree
 
-from PyQt5.QtGui import QPainter, QFont, QPalette, QBrush, QColor, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication
-from PyQt5.QtWidgets import QWidget, QLineEdit, QSizePolicy, QTableView
-from PyQt5.QtWidgets import QHBoxLayout, QVBoxLayout
-from PyQt5.QtWidgets import QStyleOptionHeader, QHeaderView, QStyle, QSpacerItem
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, QSize, QRect, QPoint, Qt
+from copy import deepcopy
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
@@ -105,16 +107,27 @@ class MetaInfo(WizardWidget):
             self.root_widget.switch_schema('fgdc')
 
     def pull_datasetcontact(self):
-        self.contactinfo._from_xml(self.root_widget.idinfo.ptcontac._to_xml())
+        self.contactinfo.from_xml(self.root_widget.idinfo.ptcontac.to_xml())
 
-    def _to_xml(self):
+    def to_xml(self):
         # add code here to translate the form into xml representation
         metainfo_node = xml_utils.xml_node('metainfo')
         metd = xml_utils.xml_node('metd', text=self.metd.get_date(),
                                   parent_node=metainfo_node)
 
+        if self.original_xml is not None:
+            metrd = xml_utils.search_xpath(self.original_xml, 'metrd')
+            if metrd is not None:
+                metrd.tail = None
+                metainfo_node.append(deepcopy(metrd))
+        if self.original_xml is not None:
+            metfrd = xml_utils.search_xpath(self.original_xml, 'metfrd')
+            if metfrd is not None:
+                metfrd.tail = None
+                metainfo_node.append(deepcopy(metfrd))
+
         metc = xml_utils.xml_node('metc', parent_node=metainfo_node)
-        cntinfo = self.contactinfo._to_xml()
+        cntinfo = self.contactinfo.to_xml()
         metc.append(cntinfo)
 
         metstdn = xml_utils.xml_node('metstdn',
@@ -124,17 +137,41 @@ class MetaInfo(WizardWidget):
                                      text=self.ui.fgdc_metstdv.currentText(),
                                      parent_node=metainfo_node)
 
+        if self.original_xml is not None:
+            mettc = xml_utils.search_xpath(self.original_xml, 'mettc')
+            if mettc is not None:
+                mettc.tail = None
+                metainfo_node.append(deepcopy(mettc))
+        if self.original_xml is not None:
+            metac = xml_utils.search_xpath(self.original_xml, 'metac')
+            if metac is not None:
+                metac.tail = None
+                metainfo_node.append(deepcopy(metac))
+
+        metuc_str = "Record created using USGS Metadata Wizard tool. (https://github.com/usgs/fort-pymdwizard)"
+        if self.original_xml is not None:
+            metuc = xml_utils.search_xpath(self.original_xml, 'metuc')
+            if metuc is not None:
+                metuc_str = xml_utils.get_text_content(self.original_xml, 'metuc')
         metuc = xml_utils.xml_node('metuc',
-                                   text="Record created using USGS Metadata Wizard tool. (https://github.com/usgs/fort-pymdwizard)",
+                                   text=metuc_str,
                                    parent_node=metainfo_node)
+
+        if self.original_xml is not None:
+            metextns = xml_utils.search_xpath(self.original_xml, 'metextns')
+            if metextns is not None:
+                metextns.tail = None
+                metainfo_node.append(deepcopy(metextns))
 
         return metainfo_node
 
-    def _from_xml(self, xml_metainfo):
+    def from_xml(self, xml_metainfo):
 
         if xml_metainfo.tag == 'metainfo':
+            self.original_xml = xml_metainfo
+
             if xml_metainfo.xpath('metc/cntinfo'):
-                self.contactinfo._from_xml(xml_metainfo.xpath('metc/cntinfo')[0])
+                self.contactinfo.from_xml(xml_metainfo.xpath('metc/cntinfo')[0])
 
             if xml_metainfo.xpath('metstdn'):
                 standard = xml_utils.get_text_content(xml_metainfo, 'metstdn')
@@ -154,7 +191,7 @@ class MetaInfo(WizardWidget):
         elif xml_metainfo.tag in ['ptcontac', 'cntinfo']:
             if xml_metainfo.tag == 'ptcontac':
                 xml_metainfo = xml_utils.search_xpath(xml_metainfo, 'cntinfo')
-            self.contactinfo._from_xml(xml_metainfo)
+            self.contactinfo.from_xml(xml_metainfo)
 
 if __name__ == "__main__":
     utils.launch_widget(MetaInfo, "MetaInfo testing")
