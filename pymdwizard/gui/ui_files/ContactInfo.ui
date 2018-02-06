@@ -143,10 +143,10 @@ color: rgb(50, 50, 50);
            </size>
           </property>
           <property name="toolTip">
-           <string>Import contact information from USGS Active Directory</string>
+           <string>Import contact information from file</string>
           </property>
           <property name="text">
-           <string>Import USGS Contact</string>
+           <string>Import Contact</string>
           </property>
          </widget>
         </item>

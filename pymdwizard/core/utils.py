@@ -76,8 +76,23 @@ from PyQt5.QtGui import QIcon
 
 from pymdwizard.core import xml_utils
 
-USGS_AD_URL = r"C:\Michelle\Metadata\EMEdb\Contact_Information.xml"
+USGS_AD_URL = "https://geo-nsdi.er.usgs.gov/contact-xml.php?email={}"
+MMF_CONTACTS = "contacts.xml"
 
+def get_contact_info(ad_username, as_dictionary=True):
+    """
+    MMF - Get contacts from an xml file in resource folder
+    """
+    inxml = xml_utils.XMLNode(open(get_resource_path(MMF_CONTACTS), 'r').read())
+    for cname in inxml.cntinfo:
+        if xml_utils.get_text_content(cname, xpath='cntper') == ad_username:
+            element = cname.to_xml()
+            break
+    if as_dictionary:
+        return xml_utils.node_to_dict(element)
+    else:
+        return element
+    
 
 def get_usgs_contact_info(ad_username, as_dictionary=True):
     """

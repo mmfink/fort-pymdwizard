@@ -679,8 +679,8 @@ class Ui_USGSContactInfoWidget(object):
         USGSContactInfoWidget.setWindowTitle(_translate("USGSContactInfoWidget", "Form"))
         self.rbtn_orgp.setText(_translate("USGSContactInfoWidget", "Organization"))
         self.rbtn_perp.setText(_translate("USGSContactInfoWidget", "Person"))
-        self.btn_import_contact.setToolTip(_translate("USGSContactInfoWidget", "Import contact information from USGS Active Directory"))
-        self.btn_import_contact.setText(_translate("USGSContactInfoWidget", "Import USGS Contact"))
+        self.btn_import_contact.setToolTip(_translate("USGSContactInfoWidget", "Import contact information from a file"))
+        self.btn_import_contact.setText(_translate("USGSContactInfoWidget", "Import Contact"))
         self.lbl_cntper.setToolTip(_translate("USGSContactInfoWidget", "The name of the person to contact"))
         self.lbl_cntper.setText(_translate("USGSContactInfoWidget", "Contact Person"))
         self.fgdc_cntper.setToolTip(_translate("USGSContactInfoWidget", "Contact Person -- the name of the individual to which the contact type applies.\n"

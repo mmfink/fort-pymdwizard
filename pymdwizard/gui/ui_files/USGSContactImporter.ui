@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Import Contact Info from USGS Active Directory</string>
+   <string>Import Contact Info from a file</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -60,7 +60,7 @@
       <string notr="true">font: italic;</string>
      </property>
      <property name="text">
-      <string>Enter a valid USGS user name or email address</string>
+      <string>Enter a valid name</string>
      </property>
     </widget>
    </item>

@@ -95,29 +95,31 @@ class ContactInfo(WizardWidget):
 
     def add_contact(self):
         username = self.usgs_contact_ui.le_usgs_ad_name.text()
-        # strip off the @usgs.gov if they entered one
-        username = username.split("@")[0]
 
         if not username:
             return
 
         try:
-            cntperp = utils.get_usgs_contact_info(username,
-                                                  as_dictionary=False)
-            if cntperp.getchildren()[0].getchildren()[0].text.strip():
-                self.from_xml(cntperp)
-                self.usgs_contact.deleteLater()
-            else:
-                msg = QMessageBox(self)
-                utils.set_window_icon(msg)
-                msg.setIcon(QMessageBox.Information)
-                msg.setText("'{}' Not Found".format(username))
-                msg.setInformativeText("The Metadata Wizard was unable to locate the provided user name in the USGS directory")
-                msg.setWindowTitle("Name Not Found")
-                msg.setStandardButtons(QMessageBox.Ok)
-                msg.exec_()
+            contact_dict = utils.get_contact_info(username)
+            self.clear_widget()
+            utils.populate_widget(self, contact_dict)
+
+            addrtype_widget = self.findChild(QComboBox, 'fgdc_addrtype')
+            addrtype = contact_dict['addrtype']
+            addrtype_widget.setEditText(addrtype)
+            if 'cntorgp' in contact_dict:
+                rbtn_orgp = self.findChild(QRadioButton, 'rbtn_orgp')
+                rbtn_orgp.setChecked(True)
+            elif 'cntperp' in contact_dict:
+                rbtn_perp = self.findChild(QRadioButton, 'rbtn_perp')
+                rbtn_perp.setChecked(True)
+            self.usgs_contact.deleteLater()
+
+        except KeyError:
+            pass
+                
         except:
-            msg_text = "Make sure there is a working Internet connection or try again latter."
+            msg_text = "Well, that didn't work."
             msg = QMessageBox(self)
             utils.set_window_icon(msg)
             msg.setIcon(QMessageBox.Information)
@@ -126,6 +128,31 @@ class ContactInfo(WizardWidget):
             msg.setWindowTitle("Problem encountered")
             msg.setStandardButtons(QMessageBox.Ok)
             msg.exec_()
+            
+#        try:
+#            cntperp = utils.get_usgs_contact_info(username)
+#            if cntperp.getchildren()[0].getchildren()[0].text.strip():
+#                self.from_xml(cntperp)
+#                self.usgs_contact.deleteLater()
+#            else:
+#                msg = QMessageBox(self)
+#                utils.set_window_icon(msg)
+#                msg.setIcon(QMessageBox.Information)
+#                msg.setText("'{}' Not Found".format(username))
+#                msg.setInformativeText("The Metadata Wizard was unable to locate the provided user name")
+#                msg.setWindowTitle("Name Not Found")
+#                msg.setStandardButtons(QMessageBox.Ok)
+#                msg.exec_()
+#        except:
+#            msg_text = "Make sure there is a working Internet connection or try again latter."
+#            msg = QMessageBox(self)
+#            utils.set_window_icon(msg)
+#            msg.setIcon(QMessageBox.Information)
+#            msg.setText("Issue encountered while searching contact information.")
+#            msg.setInformativeText(msg_text)
+#            msg.setWindowTitle("Problem encountered")
+#            msg.setStandardButtons(QMessageBox.Ok)
+#            msg.exec_()
 
     def cancel(self):
         self.usgs_contact.deleteLater()

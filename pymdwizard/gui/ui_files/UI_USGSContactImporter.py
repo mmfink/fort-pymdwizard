@@ -58,8 +58,8 @@ class Ui_ImportUsgsUser(object):
 
     def retranslateUi(self, ImportUsgsUser):
         _translate = QtCore.QCoreApplication.translate
-        ImportUsgsUser.setWindowTitle(_translate("ImportUsgsUser", "Import Contact Info from USGS Active Directory"))
-        self.label.setText(_translate("ImportUsgsUser", "Enter a valid USGS user name or email address"))
+        ImportUsgsUser.setWindowTitle(_translate("ImportUsgsUser", "Import Contact Info"))
+        self.label.setText(_translate("ImportUsgsUser", "Enter a name"))
         self.btn_OK.setText(_translate("ImportUsgsUser", "OK"))
         self.btn_cancel.setText(_translate("ImportUsgsUser", "Cancel"))
 
