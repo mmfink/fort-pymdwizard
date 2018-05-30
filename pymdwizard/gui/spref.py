@@ -63,6 +63,7 @@ from pymdwizard.core import fgdc_utils
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.ui_files import UI_spref
 from pymdwizard.gui.mapproj import MapProj
+from  pymdwizard.gui.vertdef import Vertdef
 
 
 class SpRef(WizardWidget):
@@ -94,6 +95,10 @@ class SpRef(WizardWidget):
 
         self.ui.fgdc_gridsysn.addItems(spatial_utils.GRIDSYS_LOOKUP.keys())
 
+        self.vertdef = Vertdef()
+        self.vertdef.ui.rbtn_no.setChecked(True)
+
+        self.layout().addWidget(self.vertdef)
         self.clear_widget()
         self.ui.fgdc_mapprojn.setCurrentText('Transverse Mercator')
 
@@ -197,8 +202,6 @@ class SpRef(WizardWidget):
         gridsys_proj = spatial_utils.PROJECTION_LOOKUP[projection['projection']]
         self.grid_mapproj.load_projection(gridsys_proj['shortname'])
 
-
-
     def load_datum(self):
         datum_names = spatial_utils.DATUM_LOOKUP.keys()
         datum_name = self.ui.fgdc_horizdn.currentText()
@@ -288,11 +291,8 @@ class SpRef(WizardWidget):
             denflat_str = self.findChild(QLineEdit, "fgdc_denflat").text()
             xml_node('denflat', denflat_str, geodetic)
 
-            if self.original_xml is not None:
-                vertdef = xml_utils.search_xpath(self.original_xml, 'vertdef')
-                if vertdef is not None:
-                    vertdef.tail = None
-                    spref_node.append(deepcopy(vertdef))
+        if self.vertdef.has_content():
+            spref_node.append(self.vertdef.to_xml())
 
         return spref_node
 
@@ -336,9 +336,9 @@ class SpRef(WizardWidget):
 
                     utils.populate_widget_element(self.ui.fgdc_mapprojn, 
                                                   mapproj, 'mapprojn')
-                    if mapproj.getchildren():
-                        mapproj_contents = mapproj.getchildren()[1]
-                        self.mapproj.from_xml(mapproj_contents)
+                    mapproj_children = mapproj.getchildren()
+                    if len(mapproj_children) > 1:
+                        self.mapproj.from_xml(mapproj_children[1])
 
                 gridsys = xml_utils.search_xpath(planar, 'gridsys')
                 if gridsys is not None:
@@ -347,22 +347,25 @@ class SpRef(WizardWidget):
                     utils.populate_widget_element(self.ui.fgdc_gridsysn,
                                                   gridsys, 'gridsysn')
 
-                    if gridsys.getchildren():
+                    gridsys_children = gridsys.getchildren()
+                    if len(gridsys_children) > 1:
                         gridsys_contents = gridsys.getchildren()[1]
-                        for item in gridsys_contents.getchildren():
-                            tag = item.tag
-                            if spatial_utils.lookup_shortname(tag) is not None:
-                                self.grid_mapproj.from_xml(item)
-                            elif tag == 'mapproj':
-                                mapprojn = xml_utils.search_xpath(item, 
-                                                                  'mapprojn')
-                                if mapprojn.text in \
-                                        spatial_utils.PROJECTION_LOOKUP:
-                                    self.grid_mapproj.from_xml(item.getchildren()[1])
-                            else:
-                                item_widget = self.findChild(QLineEdit, 
-                                                             "fgdc_"+tag)
-                                utils.set_text(item_widget, item.text)
+                    else:
+                        gridsys_contents = []
+                    for item in gridsys_contents.getchildren():
+                        tag = item.tag
+                        if spatial_utils.lookup_shortname(tag) is not None:
+                            self.grid_mapproj.from_xml(item)
+                        elif tag == 'mapproj':
+                            mapprojn = xml_utils.search_xpath(item,
+                                                              'mapprojn')
+                            if mapprojn.text in \
+                                    spatial_utils.PROJECTION_LOOKUP:
+                                self.grid_mapproj.from_xml(item.getchildren()[1])
+                        else:
+                            item_widget = self.findChild(QLineEdit,
+                                                         "fgdc_"+tag)
+                            utils.set_text(item_widget, item.text)
 
                     grid_proj = gridsys.xpath('proj')
 
@@ -395,6 +398,10 @@ class SpRef(WizardWidget):
                                               'semiaxis')
                 utils.populate_widget_element(self.ui.fgdc_denflat, geodetic, 
                                               'denflat')
+
+            vertdef = xml_utils.search_xpath(spref_node, 'vertdef')
+            if vertdef is not None:
+                self.vertdef.from_xml(vertdef)
 
 if __name__ == "__main__":
     utils.launch_widget(SpRef, "spref testing")

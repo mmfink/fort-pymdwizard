@@ -51,6 +51,7 @@ the copyright owner.
 import os
 import collections
 import warnings
+from pathlib import Path
 
 from defusedxml import lxml
 from lxml import etree as etree
@@ -60,7 +61,6 @@ try:
 except ImportError:
     warnings.warn('Pandas library not installed, dataframes disabled')
     pd = None
-
 
 def xml_document_loader(xml_locator):
     """
@@ -103,6 +103,7 @@ def save_to_file(element, fname):
     """
     import codecs
     file = codecs.open(fname, "w", "utf-8")
+
     file.write(node_to_string(element))
     file.close()
 
@@ -269,7 +270,7 @@ def element_to_df(results):
     return pd.DataFrame.from_dict(results_list)
 
 
-def node_to_string(node):
+def node_to_string(node, encoding=True):
     """
 
     Parameters
@@ -288,7 +289,7 @@ def node_to_string(node):
         tree = node
 
     return lxml.tostring(tree, pretty_print=True, with_tail=False,
-                         encoding='UTF-8', xml_declaration=True).decode("utf-8")
+                         encoding='UTF-8', xml_declaration=encoding).decode("utf-8")
 
 
 def fname_to_node(fname):
@@ -388,20 +389,49 @@ def clear_children(element):
 
 class XMLRecord(object):
     def __init__(self, contents):
+        """
+        contents must be one of the following
+
+        1) File path/name on the local filesystem that exists and can be read
+        2) String containing an XML Record.
+        3) URL containing an XML record
+
+        Parameters
+        ----------
+        contents : str, lxml node
+                url, file path, string xml snippet
+        """
         try:
-            if os.path.exists(contents[:255]):
-                self.fname = contents
-                # they passed us a file path
+            contents_path = Path(contents)
+            try:
+                exists = contents_path.exists()
+            except OSError:
+                exists = False
+
+            if exists:
+                self.fname = str(contents_path.absolute())
+                # they passde us a file path
                 self.record = lxml.parse(self.fname)
                 self._root = self.record.getroot()
             else:
                 from pymdwizard.core import utils
-                if utils.url_validator(contents):
-                    print('is url')
-                    contents = utils.requests_pem_get(contents).text
+                try:
+                    if utils.url_validator(contents):
+                        contents = utils.requests_pem_get(contents).text
+                except:
+                    pass
                 self.fname = None
+
+                if contents[:3] == 'ï»¿':
+                    # string contents start with the BOM strip this
+                    contents = contents[3:]
+                if type(contents) == str:
+                    # we need bytes not string
+                    contents = contents.encode('utf-8')
+
                 self._root = string_to_node(contents)
                 self.record = etree.ElementTree(self._root)
+
         except etree.XMLSyntaxError:
             self.fname = None
             self.record = lxml.fromstring(contents)
@@ -423,9 +453,7 @@ class XMLRecord(object):
     def save(self, fname=''):
         if not fname:
             fname = self.fname
-
-        with open(fname, "w") as text_file:
-            text_file.write(self.__str__())
+        save_to_file(self._contents.to_xml(), fname)
 
     def validate(self, schema='fgdc', as_dataframe=True):
         from pymdwizard.core import fgdc_utils
@@ -786,7 +814,7 @@ class XMLNode(object):
             index += 1
 
         if type(child) == etree._Element:
-            node_str = node_to_string(child)
+            node_str = node_to_string(child, encoding=False)
         else:
             node_str = child.to_str()
         child_copy = XMLNode(node_str)

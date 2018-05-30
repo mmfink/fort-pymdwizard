@@ -71,6 +71,9 @@ from pymdwizard.gui import udom
 from pymdwizard.gui import rdom
 from pymdwizard.gui import codesetd
 from pymdwizard.gui import edom_list
+from pymdwizard.gui import edom
+from pymdwizard.gui.ui_files.spellinghighlighter import Highlighter
+from pymdwizard.core import data_io
 
 
 class Attr(WizardWidget):
@@ -82,6 +85,10 @@ class Attr(WizardWidget):
         # This changes to true when this attribute is being viewed/edited
         self.active = False
         self.ef = 0
+
+        self.nodata = None
+        self.nodata_content = (False, None) # nodata checked, last nodata node
+
         WizardWidget.__init__(self, parent=parent)
 
         # an in memory record of all  the contents that were selected
@@ -91,6 +98,12 @@ class Attr(WizardWidget):
 
         self.parent_ui = parent
         self.series = None
+        self.ui.nodata_section.hide()
+        self.highlighter = Highlighter(self.ui.fgdc_attrdef.document())
+
+        self.nodata_matches = ['#N/A', '#N/A N/A', '#NA', '-1.#IND', '-1.#QNAN', '-NaN',
+                               '-nan', '1.#IND', '1.#QNAN', 'N/A', 'NA', 'NULL', 'NaN',
+                               'n/a', 'nan', 'null', -9999, '-9999', '', 'Nan', '<< empty cell >>']
 
     def build_ui(self):
         """
@@ -115,8 +128,32 @@ class Attr(WizardWidget):
         self.ui.fgdc_attrdef.mousePressEvent = self.attrdef_press
         self.ui.fgdc_attrdefs.mousePressEvent = self.attrdefs_press
         self.ui.comboBox.mousePressEvent = self.combo_press
+        self.ui.rbtn_nodata_yes.toggled.connect(self.include_nodata_change)
+
         self.domain = None
+        self.ui.nodata_content.hide()
+        self.ui.rbtn_nodata_no.setChecked(True)
         self.ui.comboBox.setCurrentIndex(3)
+
+    def include_nodata_change(self, b):
+        """
+            The user has changed the nodata present selection
+
+            Parameters
+            ----------
+            b: qt event
+
+            Returns
+            -------
+            None
+            """
+        if b:
+            self.ui.nodata_section.show()
+            # self.nodata
+            # self.nodata_edom.show()
+        else:
+            self.ui.nodata_section.hide()
+            # self.nodata = None
 
     def mousePressEvent(self, event):
         self.activate()
@@ -141,6 +178,13 @@ class Attr(WizardWidget):
         for child in self.ui.attrdomv_contents.children():
             if isinstance(child, QWidget):
                 child.deleteLater()
+
+    def clear_nodata(self):
+        try:
+            self.nodata_edom.deleteLater()
+        except:
+            pass
+
 
     def set_series(self, series):
         """
@@ -172,17 +216,23 @@ class Attr(WizardWidget):
         """
         # given a series of data take a guess as to which
         # domain type is appropriate
+
         if self.series is not None:
-            uniques = self.series.unique()
-            if len(uniques) < 20:
-                return 0
-            elif np.issubdtype(self.series.dtype, np.number):
-                return 1
+            if self.nodata is not None:
+                clean_series = data_io.clean_nodata(self.series, self.nodata)
             else:
-                return 3
+                clean_series = self.series
+
+            uniques = clean_series.unique()
+            if np.issubdtype(clean_series.dtype, np.number):
+                return 1  # range
+            elif len(uniques) < 20:
+                return 0  # enumerated
+            else:
+                return 3  # unrepresentable
 
         # without a series to introspect we're going to default to udom
-        return 3
+        return 3  # unrepresentable
 
     def store_current_content(self):
         """
@@ -203,6 +253,13 @@ class Attr(WizardWidget):
             elif cur_xml.tag == 'attr':
                 self._domain_content[0] = cur_xml
 
+        if self.ui.rbtn_nodata_yes.isChecked() and \
+           not sip.isdeleted(self.nodata_edom):
+            self.nodata_content = (True, self.nodata_edom.to_xml())
+        else:
+            self.nodata_content = (False, self.nodata_edom.to_xml())
+
+
     def populate_domain_content(self, which='guess'):
         """
         Fill out this widget with the content from it's associated series
@@ -220,6 +277,7 @@ class Attr(WizardWidget):
         self.clear_domain()
 
         if which == 'guess':
+            self.sniff_nodata()
             index = self.guess_domain()
         else:
             index = which
@@ -239,7 +297,9 @@ class Attr(WizardWidget):
             # This domain has been used before, display previous content
             self.domain.from_xml(self._domain_content[index])
         elif self.series is not None and index == 0:
-            uniques = self.series.unique()
+            clean_series = data_io.clean_nodata(self.series, self.nodata)
+            uniques = clean_series.unique()
+
             if len(uniques) > 100:
                 msg = "There are more than 100 unique values in this field."
                 msg += "\n This tool cannot smoothly display that many " \
@@ -254,15 +314,25 @@ class Attr(WizardWidget):
             else:
                 self.domain.populate_from_list(uniques)
         elif self.series is not None and index == 1:
+            clean_series = data_io.clean_nodata(self.series, self.nodata)
             try:
-                self.domain.ui.fgdc_rdommin.setText(str(self.series.min()))
+                self.domain.ui.fgdc_rdommin.setText(str(clean_series.min()))
             except:
                 self.domain.ui.fgdc_rdommin.setText('')
             try:
-                self.domain.ui.fgdc_rdommax.setText(str(self.series.max()))
+                self.domain.ui.fgdc_rdommax.setText(str(clean_series.max()))
             except:
                 self.domain.ui.fgdc_rdommax.setText('')
 
+            if not np.issubdtype(clean_series.dtype, np.number):
+                msg = 'Caution! The contents of this column are stored in the' \
+                      ' data source as "text".  The use of a range domain ' \
+                      'type on text columns might give unexpected results, ' \
+                      'especially for columns that contain date information.'
+                msgbox = QMessageBox(QMessageBox.Warning, "Range domain on text field",
+                                     msg)
+                utils.set_window_icon(msgbox)
+                msgbox.exec_()
         self.ui.attrdomv_contents.layout().addWidget(self.domain)
 
     def change_domain(self):
@@ -296,9 +366,17 @@ class Attr(WizardWidget):
             self.animation.start()
             self.ui.attrdomv_contents.show()
             self.ui.place_holder.hide()
-
             cbo = self.ui.comboBox
             self.populate_domain_content(cbo.currentIndex())
+
+            self.ui.nodata_content.show()
+            self.nodata_edom = edom.Edom()
+            self.ui.rbtn_nodata_yes.setChecked(self.nodata_content[0])
+            if self.nodata_content[1] is not None:
+                self.nodata_edom.from_xml(self.nodata_content[1])
+
+            self.nodata_edom.ui.fgdc_edomv.textChanged.connect(self.nodata_changed)
+            self.ui.nodata_section.layout().addWidget(self.nodata_edom)
 
     def regularsize_me(self):
         """
@@ -314,8 +392,9 @@ class Attr(WizardWidget):
             self.animation.setDuration(200)
             self.animation.setEndValue(QSize(100, self.height()))
             self.animation.start()
-
+            self.ui.nodata_content.hide()
             self.clear_domain()
+            self.clear_nodata()
             self.ui.place_holder.show()
 
         self.active = False
@@ -336,6 +415,43 @@ class Attr(WizardWidget):
             if self.parent_ui is not None:
                 self.parent_ui.minimize_children()
             self.supersize_me()
+
+    def nodata_changed(self):
+        """remove """
+        self.nodata = self.nodata_edom.ui.fgdc_edomv.text()
+        if self.nodata == "<< empty cell >>":
+            self.nodata = ""
+        self.clean_domain_nodata()
+
+    def clean_domain_nodata(self):
+        if self.domain is not None and not sip.isdeleted(self.domain):
+            cur_xml = self.domain.to_xml()
+            if cur_xml.tag == 'rdom':
+                self._domain_content[1] = cur_xml
+            elif cur_xml.tag == 'attr':
+                edoms = self.domain.edoms
+                self._domain_content[0] = cur_xml
+
+    def sniff_nodata(self):
+        uniques = self.series.unique()
+
+        self.nodata = None
+        for nd in self.nodata_matches:
+            if nd in list(uniques):
+                self.nodata = nd
+
+        if self.nodata is None:
+            self.nodata_content = (False, self.nodata_content[1])
+        else:
+            temp_edom = edom.Edom()
+            if self.nodata == '':
+                temp_edom.ui.fgdc_edomv.setText('<< empty cell >>')
+            else:
+                temp_edom.ui.fgdc_edomv.setText(str(self.nodata))
+
+            temp_edom.ui.fgdc_edomvd.setPlainText('No Data')
+            self.nodata_content = (True, temp_edom.to_xml())
+            temp_edom.deleteLater()
 
     def contextMenuEvent(self, event):
 
@@ -460,6 +576,11 @@ class Attr(WizardWidget):
                                       text=self.ui.fgdc_attrdefs.text(),
                                       parent_node=attr, index=2)
 
+        if self.nodata_content[0]:
+            attrdomv = xml_utils.xml_node('attrdomv', parent_node=attr,
+                                          index=3)
+            attrdomv.append(self.nodata_content[1])
+
         return attr
 
     def from_xml(self, attr):
@@ -482,6 +603,24 @@ class Attr(WizardWidget):
                 attr_node = xml_utils.XMLNode(attr)
                 attrdomvs = attr_node.xpath('attrdomv', as_list=True)
                 attr_domains = [a.children[0].tag for a in attrdomvs]
+
+                # pull out the first no data attribute domain
+                for attrdomv in attrdomvs:
+                    if attrdomv.children[0].tag == 'edom' and \
+                            (attrdomv.children[0].children[0].text in self.nodata_matches or \
+                            attrdomv.children[0].children[1].text.lower() in ['nodata', 'no data']
+                            or (attr_domains.count('edom')==1) and len(attr_domains) > 1):
+                        self.ui.rbtn_nodata_yes.setChecked(True)
+                        self.nodata_content = (1, attrdomv.children[0].to_xml())
+                        attrdomvs.remove(attrdomv)
+                        attr_domains.remove('edom')
+                        try:
+                            edomv = attr.xpath("attrdomv/edom/edomv[text()='{}']".format(attrdomv.children[0].children[0].text))[0]
+                            nd_attrdomv = edomv.getparent().getparent()
+                            nd_attrdomv.getparent().remove(nd_attrdomv)
+                        except:
+                            pass
+                        break
 
                 if len(set(attr_domains)) > 1:
                     # multiple domain types present in this attr

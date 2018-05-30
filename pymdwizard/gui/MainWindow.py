@@ -117,6 +117,11 @@ class PyMdWizardMainForm(QMainWindow):
         self.connect_events()
 
         self.load_default()
+        settings = QSettings('USGS', 'pymdwizard')
+        use_spelling = settings.value('use_spelling', "true")
+        if isinstance(use_spelling, str):
+            use_spelling = eval(use_spelling.capitalize())
+        self.switch_spelling(use_spelling)
 
     def build_ui(self):
         """
@@ -179,12 +184,13 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionLaunch_Jupyter.triggered.connect(self.launch_jupyter)
         self.ui.generate_review.triggered.connect(self.generate_review_doc)
         self.ui.actionLaunch_Help.triggered.connect(self.launch_help)
-        self.ui.actionCheck_for_Updates.triggered.connect(self.update_from_github)
+        self.ui.actionCheck_for_Updates.triggered.connect(self.check_for_updates)
         self.ui.actionAbout.triggered.connect(self.about)
         self.ui.actionData_Quality.triggered.connect(self.use_dataqual)
         self.ui.actionSpatial.triggered.connect(self.use_spatial)
         self.ui.actionEntity_and_Attribute.triggered.connect(self.use_eainfo)
         self.ui.actionDistribution.triggered.connect(self.use_distinfo)
+        self.ui.actionSpelling_flag.triggered.connect(self.spelling_switch_triggered)
 
     def open_recent_file(self):
         """
@@ -274,10 +280,13 @@ class PyMdWizardMainForm(QMainWindow):
         QApplication.processEvents()
         self.metadata_root.clear_widget()
         self.ui.actionData_Quality.setChecked(True)
+        self.use_dataqual(True)
         self.ui.actionSpatial.setChecked(True)
+        self.use_spatial(True)
         self.ui.actionEntity_and_Attribute.setChecked(True)
+        self.use_eainfo(True)
         self.ui.actionDistribution.setChecked(True)
-
+        self.use_distinfo(True)
         try:
             new_record = xml_utils.fname_to_node(fname)
             self.metadata_root.from_xml(new_record)
@@ -394,7 +403,11 @@ class PyMdWizardMainForm(QMainWindow):
         self.load_default()
         save_as_fname = self.get_save_name()
         if save_as_fname:
-            template_fname = utils.get_resource_path('CSDGM_Template.xml')
+            settings = QSettings('USGS', 'pymdwizard')
+            template_fname = settings.value('template_fname')
+            if template_fname is None or not os.path.exists(template_fname):
+                template_fname = utils.get_resource_path('CSDGM_Template.xml')
+
             shutil.copyfile(template_fname, save_as_fname)
             self.load_file(save_as_fname)
             self.set_current_file(save_as_fname)
@@ -866,6 +879,61 @@ class PyMdWizardMainForm(QMainWindow):
 
         self.error_widgets.append(widget_parent)
 
+    def spelling_switch_triggered(self, e):
+        spelling_action_text = self.ui.actionSpelling_flag.text()
+        use_spelling = spelling_action_text == 'Turn Spelling OFF'
+        self.switch_spelling(not use_spelling)
+
+    def switch_spelling(self, use_spelling):
+        """
+        Handle click event of the Turn Spelling (OFF | ON) action
+        Changes the action's label and updates the widget's highlighter.
+
+        Parameters
+        ----------
+        e : Qt event, not used
+
+        Returns
+        -------
+        None
+        """
+        if use_spelling:
+            self.ui.actionSpelling_flag.setText('Turn Spelling OFF')
+        else:
+            self.ui.actionSpelling_flag.setText('Turn Spelling ON')
+
+        self.recursive_spell(self.metadata_root, use_spelling)
+
+        settings = QSettings('USGS', 'pymdwizard')
+        settings.setValue('use_spelling', use_spelling)
+
+    def recursive_spell(self, widget, which):
+        """
+        Turn on or off the spelling highlighter for this widget and
+        iterate through the widget's child widgets to recursively do the
+        same for them.
+
+        Parameters
+        ----------
+        widget : Qwidget
+        which : bool
+                flag to turn spelling on or off
+                True = turn spelling highlighting on
+                False = turn spelling highlighting off
+
+        Returns
+        -------
+            None
+        """
+        try:
+            widget.highlighter.enabled = which
+            widget.highlighter.rehighlight()
+        except:
+            pass
+
+        for child_widget in self.metadata_root.get_children(widget):
+            self.recursive_spell(child_widget, which)
+
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls:
             e.accept()
@@ -885,16 +953,21 @@ class PyMdWizardMainForm(QMainWindow):
         :param e:
         :return:
         """
-        if e.mimeData().hasUrls:
-            e.setDropAction(Qt.CopyAction)
+        try:
+            if e.mimeData().hasUrls:
+                e.setDropAction(Qt.CopyAction)
 
-            url = e.mimeData().urls()[0]
-            fname = url.toLocalFile()
-            if os.path.isfile(fname):
-                self.open_file(fname)
-            e.accept()
-        else:
-            e.ignore()
+                url = e.mimeData().urls()[0]
+                fname = url.toLocalFile()
+                if os.path.isfile(fname):
+                    self.open_file(fname)
+                e.accept()
+            else:
+                e.ignore()
+        except:
+            # if anything goes wrong at all, pass silently.
+            # This is just a convenience function
+            pass
 
     def preview(self):
         """
@@ -969,8 +1042,8 @@ class PyMdWizardMainForm(QMainWindow):
                 def open_file(filename):
                     if sys.platform == "win32":
                         os.startfile('"{}"'.format(filename))
-                    else:
-                        opener = "open" if sys.platform == "darwin" else "xdg-open"
+                    elif sys.platform == "darwin":
+                        opener = "open"
                         subprocess.call([opener, filename])
 
                 open_file(out_fname)
@@ -1023,78 +1096,108 @@ class PyMdWizardMainForm(QMainWindow):
         settings.setValue('last_kernel', kernel)
 
     def about(self):
+        """
+        Display an 'about' message box with contanct info and current
+        version number
 
-        msgbox = QMessageBox(self)
-        msgbox.setWindowTitle("About")
-        msgbox.setTextFormat(Qt.RichText)
-
+        Returns
+        -------
+        None
+        """
         msg = 'The MetadataWizard was developed by the USGS Fort Collins Science Center<br>'
         msg += 'With help from the USGS Council for Data integration (CDI) and<br>'
         msg += 'and the USGS Core Science Analytics, Synthesis, and Libraries (CSAS&L)<br>'
         msg += '<br>Version: {}<br>'.format(__version__)
         msg += "<br> Project page: <a href='https://github.com/usgs/fort-pymdwizard'>https://github.com/usgs/fort-pymdwizard</a>"
         msg += '<br><br>Contact: Colin Talbert at talbertc@usgs.gov'
-        msgbox.setText(msg)
-        msgbox.exec_()
 
-    def check_for_updates(self):
-        from subprocess import check_output
+        msgbox = QMessageBox.about(self, 'About', msg)
 
-        install_dir = utils.get_install_dname()
-        root_dir = os.path.dirname(install_dir)
-        git_exe = os.path.join(root_dir, 'Python36_64', 'Library', 'bin', 'git.exe')
+    def check_for_updates(self, e=None, show_uptodate_msg=True):
+        """
+        Check if the usgs_root repo is at the same commit as this installation
 
+        Parameters
+        ----------
+        e : qt event
+            
+        show_uptodate_msg : bool
+           Whether to display a msg if no updates found
+
+        Returns
+        -------
+        None
+        """
         try:
-            fetch = check_output([git_exe, 'fetch', 'usgs_root'], cwd=install_dir, shell=True)
-            updates = check_output([git_exe, 'log', 'HEAD..usgs_root/master'], cwd=install_dir, shell=True)
-            if updates:
+            from git import Repo
+            install_dir = utils.get_install_dname('pymdwizard')
+            repo = Repo(install_dir)
+            fetch = [r for r in repo.remotes if r.name=='usgs_root'][0].fetch()
+            master = [f for f in fetch if f.name=='usgs_root/master'][0]
+
+            if repo.head.commit != master.commit:
                 msg = "An update(s) are available for the Metadata Wizard.\n"
                 msg += "Would you like to install these now?"
 
                 confirm = QMessageBox.question(self, "Updates Available", msg,
-                                               QMessageBox.Yes|QMessageBox.No)
+                                               QMessageBox.Yes | QMessageBox.No)
                 if confirm == QMessageBox.Yes:
                     self.update_from_github()
+            elif show_uptodate_msg:
+                msg = "MetadataWizard already up to date."
+                QMessageBox.information(self, "No Update Needed", msg)
+
         except BaseException as e:
-            pass
+            if not show_uptodate_msg:
+                msg = 'Problem Encountered Updating from GitHub\n\nError Message:\n'
+                msg += str(e)
+                QMessageBox.information(self, "Update results", msg)
 
     def update_from_github(self):
-        from subprocess import check_output
+        """
+        Merge the latest version of the Wizard into the local repo
 
-        if platform.system() == 'Darwin':
-            install_dir = utils.get_install_dname()
-            cmd = ['pip', 'install', '-U', 'git+https://github.com/usgs/fort-pymdwizard.git']
-            p = check_output(cmd)
-            msg =  "Updated from GitHub"
+        Returns
+        -------
+        None
+        """
 
-        else:
-            install_dir = utils.get_install_dname()
-            root_dir = os.path.dirname(install_dir)
-            update_bat = os.path.join(root_dir, 'update_wizard.bat')
-            if os.path.exists(update_bat) and os.path.exists(root_dir):
-                try:
-                    QApplication.setOverrideCursor(Qt.WaitCursor)
-                    p = check_output([update_bat], cwd=root_dir, shell=False)
-                    if p.splitlines()[-1] == b'Already up-to-date.':
-                        msg = 'Application already up to date.'
-                    else:
-                        msg = 'Application updated.\n\n'
-                        msg += 'Please close and restart the Wizard for these updates to take effect'
-                    QApplication.restoreOverrideCursor()
-                except BaseException as e:
-                    import traceback
-                    msg = "Could not update application:\n{}".format(traceback.format_exc())
-                    QApplication.restoreOverrideCursor()
-                    QMessageBox.warning(self, "Recent Files", msg)
+        try:
+            from git import Repo
+            install_dir = utils.get_install_dname('pymdwizard')
+            repo = Repo(install_dir)
+            fetch = [r for r in repo.remotes if r.name == 'usgs_root'][0].fetch()
+            master = [f for f in fetch if f.name == 'usgs_root/master'][0]
 
-            else:
-                msg = 'Could not find the batch file to update the application'
+            merge_msg = repo.git.merge(master.name)
+
+            msg = 'Updated Successfully from GitHub.'
+            QMessageBox.information(self, "Update results", msg)
+        except BaseException as e:
+            msg = 'Problem Encountered Updating from GitHub\n\n' \
+                  'Please upgrade to the latest release by reinstalling the ' \
+                  'application from GitHub ' \
+                  '\n(https://github.com/usgs/fort-pymdwizard/releases)\n\n' \
+                  'Error Message:\n'
+            msg += str(e)
+            QMessageBox.information(self, "Update results", msg)
 
         QApplication.restoreOverrideCursor()
-        QMessageBox.information(self, "Update results", msg)
 
 
-def show_splash(version=''):
+def show_splash(version='2.x.x'):
+    """
+    Show the applications splash screen
+
+    Parameters
+    ----------
+    version : str
+            Version number as a string (only numerals, period or x supported)
+
+    Returns
+    -------
+    None
+    """
     splash_fname = utils.get_resource_path('icons/splash.jpg')
     splash_pix = QPixmap(splash_fname)
 
@@ -1102,7 +1205,7 @@ def show_splash(version=''):
     splash_pix = splash_pix.scaled(size, Qt.KeepAspectRatio,
                                    transformMode=Qt.SmoothTransformation)
     numbers = {}
-    for number in list(range(10)) + ['point']:
+    for number in list(range(10)) + ['point', 'x']:
         fname = utils.get_resource_path('icons/{}.png'.format(number))
         pix = QPixmap(fname)
         size = pix.size() * .65
@@ -1137,7 +1240,7 @@ def launch_main(xml_fname=None, introspect_fname=None):
     mdwiz.show()
     splash.finish(mdwiz)
 
-    mdwiz.check_for_updates()
+    mdwiz.check_for_updates(show_uptodate_msg=False)
 
     if xml_fname is not None and os.path.exists(xml_fname):
         mdwiz.open_file(xml_fname)
