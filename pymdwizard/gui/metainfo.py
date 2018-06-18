@@ -21,14 +21,14 @@ SCRIPT DEPENDENCIES
 ------------------------------------------------------------------------------
     This script is part of the pymdwizard package and is not intented to be
     used independently.  All pymdwizard package requirements are needed.
-    
+
     See imports section for external packages used in this script as well as
     inter-package dependencies
 
 
 U.S. GEOLOGICAL SURVEY DISCLAIMER
 ------------------------------------------------------------------------------
-This software has been approved for release by the U.S. Geological Survey 
+This software has been approved for release by the U.S. Geological Survey
 (USGS). Although the software has been subjected to rigorous review,
 the USGS reserves the right to update the software as needed pursuant to
 further analysis and review. No warranty, expressed or implied, is made by
@@ -47,7 +47,7 @@ reproduce copyrighted items for other than personal use must be secured from
 the copyright owner.
 ------------------------------------------------------------------------------
 """
-
+import datetime
 from copy import deepcopy
 
 from pymdwizard.core import utils
@@ -89,6 +89,7 @@ class MetaInfo(WizardWidget):
         self.ui.fgdc_metstdn.currentTextChanged.connect(self.update_metstdv)
         self.ui.fgdc_metstdv.currentIndexChanged.connect(self.update_metstdn)
         self.ui.button_use_dataset.clicked.connect(self.pull_datasetcontact)
+        self.ui.button_today.clicked.connect(self.todays_date)
 
     def update_metstdn(self):
         if self.ui.fgdc_metstdv.currentText() == 'FGDC-STD-001-1998':
@@ -110,22 +111,50 @@ class MetaInfo(WizardWidget):
     def pull_datasetcontact(self):
         self.contactinfo.from_xml(self.root_widget.idinfo.ptcontac.to_xml())
 
+    def todays_date(self):
+        newdate = datetime.date.today()
+        metd = newdate.strftime("%Y%m%d")
+        # ** more here!! **
+
     def to_xml(self):
         # add code here to translate the form into xml representation
         metainfo_node = xml_utils.xml_node('metainfo')
-        metd = xml_utils.xml_node('metd', text=self.metd.get_date(),
-                                  parent_node=metainfo_node)
 
         if self.original_xml is not None:
+            metd = xml_utils.xml_node('metd', text=self.metd.get_date(),
+                                      parent_node=metainfo_node)
+            if metd is not None:
+                metainfo_node.append(deepcopy(metd))
             metrd = xml_utils.search_xpath(self.original_xml, 'metrd')
             if metrd is not None:
                 metrd.tail = None
                 metainfo_node.append(deepcopy(metrd))
-        if self.original_xml is not None:
             metfrd = xml_utils.search_xpath(self.original_xml, 'metfrd')
             if metfrd is not None:
                 metfrd.tail = None
                 metainfo_node.append(deepcopy(metfrd))
+            mettc = xml_utils.search_xpath(self.original_xml, 'mettc')
+            if mettc is not None:
+                mettc.tail = None
+                metainfo_node.append(deepcopy(mettc))
+            metac = xml_utils.search_xpath(self.original_xml, 'metac')
+            if metac is not None:
+                metac.tail = None
+                metainfo_node.append(deepcopy(metac))
+            metuc = xml_utils.search_xpath(self.original_xml, 'metuc')
+            if metuc is not None:
+                metuc_str = xml_utils.get_text_content(self.original_xml, 'metuc')
+                metuc = xml_utils.xml_node('metuc',
+                                           text=metuc_str,
+                                           parent_node=metainfo_node)
+            metsi = xml_utils.search_xpath(self.original_xml, 'metsi')
+            if metsi is not None:
+                metsi.tail = None
+                metainfo_node.append(deepcopy(metsi))
+            metextns = xml_utils.search_xpath(self.original_xml, 'metextns')
+            if metextns is not None:
+                metextns.tail = None
+                metainfo_node.append(deepcopy(metextns))
 
         metc = xml_utils.xml_node('metc', parent_node=metainfo_node)
         cntinfo = self.contactinfo.to_xml()
@@ -137,37 +166,6 @@ class MetaInfo(WizardWidget):
         metstdv = xml_utils.xml_node('metstdv',
                                      text=self.ui.fgdc_metstdv.currentText(),
                                      parent_node=metainfo_node)
-
-        if self.original_xml is not None:
-            mettc = xml_utils.search_xpath(self.original_xml, 'mettc')
-            if mettc is not None:
-                mettc.tail = None
-                metainfo_node.append(deepcopy(mettc))
-        if self.original_xml is not None:
-            metac = xml_utils.search_xpath(self.original_xml, 'metac')
-            if metac is not None:
-                metac.tail = None
-                metainfo_node.append(deepcopy(metac))
-
-
-        if self.original_xml is not None:
-            metuc = xml_utils.search_xpath(self.original_xml, 'metuc')
-            if metuc is not None:
-                metuc_str = xml_utils.get_text_content(self.original_xml, 'metuc')
-                metuc = xml_utils.xml_node('metuc',
-                                           text=metuc_str,
-                                           parent_node=metainfo_node)
-
-        if self.original_xml is not None:
-            metsi = xml_utils.search_xpath(self.original_xml, 'metsi')
-            if metsi is not None:
-                metsi.tail = None
-                metainfo_node.append(deepcopy(metsi))
-
-            metextns = xml_utils.search_xpath(self.original_xml, 'metextns')
-            if metextns is not None:
-                metextns.tail = None
-                metainfo_node.append(deepcopy(metextns))
 
         return metainfo_node
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'metainfo.ui'
+# Form implementation generated from reading ui file 'C:\Python27\Anaconda2\envs\pymd\Lib\site-packages\fort-pymdwizard\pymdwizard\gui\ui_files\metainfo.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -273,6 +273,10 @@ class Ui_fgdc_metainfo(object):
         self.verticalLayout_9 = QtWidgets.QVBoxLayout(self.help_metd)
         self.verticalLayout_9.setObjectName("verticalLayout_9")
         self.verticalLayout_4.addWidget(self.help_metd)
+        self.button_today = QtWidgets.QPushButton(self.two_column_right)
+        self.button_today.setMinimumSize(QtCore.QSize(50, 0))
+        self.button_today.setObjectName("button_today")
+        self.verticalLayout_4.addWidget(self.button_today)
         spacerItem4 = QtWidgets.QSpacerItem(20, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout_4.addItem(spacerItem4)
         self.horizontalLayout_4.addWidget(self.two_column_right)
@@ -314,4 +318,5 @@ class Ui_fgdc_metainfo(object):
         self.label_8.setToolTip(_translate("fgdc_metainfo", "Required"))
         self.label_8.setText(_translate("fgdc_metainfo", "<html><head/><body><p><span style=\" font-size:18pt; color:#55aaff;\">*</span></p></body></html>"))
         self.help_metd.setTitle(_translate("fgdc_metainfo", "Metadata Date"))
+        self.button_today.setText(_translate("fgdc_metainfo", "Today"))
 

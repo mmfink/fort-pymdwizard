@@ -163,18 +163,18 @@ def ConvertArc10toFGDC(SourceFile, OutputXML_inFGDCFormat, TempDir):
         arcpy.AddMessage("\n")
         arcpy.AddMessage("Metadata converted successfully.")
 
-def ExportFGDCtoFGDC(InputXMLFile, OutputXMLFile):
+def ExportFGDCtoFGDC(InputXMLFile, OutputHTMLFile):
     try:
-        if os.path.exists(OutputXMLFile):
-            os.remove(OutputXMLFile) 
+        if os.path.exists(OutputHTMLFile):
+            os.remove(OutputHTMLFile) 
     except:
         raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
     
 #Implement the USGSMPTranslator tool to export to FGDC (effectively, this is an FGDC to FGDC translation). 
 #Usage: USGSMPTranslator_conversion (source, config, conversion, output, error log)     
-    arcpy.USGSMPTranslator_conversion(InputXMLFile, r"C:\Michelle\Metadata\Config\MFink.cfg", "html", OutputXMLFile)
+    arcpy.USGSMPTranslator_conversion(InputXMLFile, r"D:\MFink.cfg", "html", OutputHTMLFile)
 
-def CleanESRIFGDC(InputXMLFile, outputXMLFile): 
+def CleanESRIFGDC(InputXMLFile, OutputHTMLFile): 
     '''   
     This routine takes an .xml and removes formatting introduced by ESRI at 9.3 and earlier.
     The elements which are removed are the 'Sync = TRUE' attributes
@@ -183,8 +183,8 @@ def CleanESRIFGDC(InputXMLFile, outputXMLFile):
     '''        
     arcpy.AddMessage("The FGDC-style record has been exported an output xml file in FGDC format and is now being cleaned...")
     try:
-        if os.path.exists(outputXMLFile):
-            os.remove(outputXMLFile) 
+        if os.path.exists(OutputHTMLFile):
+            os.remove(OutputHTMLFile) 
     except:
         raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
     
@@ -216,7 +216,7 @@ def CleanESRIFGDC(InputXMLFile, outputXMLFile):
         EncodingType = str(inputDOM.encoding)
         if EncodingType == 'None':
             EncodingType = "UTF-8"
-        fileObj = codecs.open(outputXMLFile, "w", EncodingType )
+        fileObj = codecs.open(OutputHTMLFile, "w", EncodingType )
         inputDOM.writexml(fileObj, "", encoding=EncodingType)
         #PrettyXML = inputDOM.toprettyxml()
         #fileObj.write(PrettyXML)
@@ -224,7 +224,7 @@ def CleanESRIFGDC(InputXMLFile, outputXMLFile):
         os.remove(InputXMLFile)
         arcpy.AddMessage("\nConversion complete.")
     else:
-        shutil.copy(InputXMLFile, outputXMLFile)
+        shutil.copy(InputXMLFile, OutputHTMLFile)
         os.remove(InputXMLFile)
         
     arcpy.AddMessage("...cleaning completed.\n")
@@ -263,7 +263,7 @@ def GetMDContent(sourceDataFile, OutputFGDCXML, TempDir):
         if metadataType == "FGDC":
             ExportFGDCtoFGDC(sourceDataFile, tmpXML)
             CleanESRIFGDC(tmpXML, OutputFGDCXML)
-        elif metadataType == "Arc10":
+        elif metadataType == "Arc10":   
             arcpy.SynchronizeMetadata_conversion(sourceDataFile, "ALWAYS")
             ConvertArc10toFGDC(sourceDataFile, OutputFGDCXML, TempDir)
         elif metadataType == "Unknown":
@@ -273,7 +273,7 @@ def GetMDContent(sourceDataFile, OutputFGDCXML, TempDir):
                 os.remove(tmpXML)
 
 if __name__ == '__main__':
-    GetMDContent("D:/GIS/Projects/WYNDD/DRAFT_SPIDIL_WY.tif", "C:/Michelle/Metadata/metadata.html", "C:/Michelle/Metadata")
+    GetMDContent(r"D:\GIS\Projects\BLM_AdaptationStrat\PJ_NotCorrupt\metadata\JUMO_CESM_2050_Metadata.xml", "C:/Michelle/Metadata/JUMO_CESM_2050_metadata.html", "C:/Michelle/Metadata")
     #This would run the script from this .py file, in conjunction with the commented out 4 lines of GetMDContent above.
 
 
