@@ -114,7 +114,7 @@ class MetaInfo(WizardWidget):
     def todays_date(self):
         newdate = datetime.date.today()
         metd = newdate.strftime("%Y%m%d")
-        # ** more here!! **
+        self.metd.set_date(metd)
 
     def to_xml(self):
         # add code here to translate the form into xml representation
