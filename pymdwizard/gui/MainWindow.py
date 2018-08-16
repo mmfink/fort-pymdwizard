@@ -61,7 +61,6 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QSplashScreen
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtWidgets import QAction
-
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtWidgets import QDialog
@@ -71,8 +70,11 @@ from PyQt5.QtCore import QFileInfo
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QSettings
 from PyQt5.QtCore import QFileSystemWatcher
+from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QPainter
 from PyQt5.QtGui import QPixmap
+
 
 try:
     import docx
@@ -89,6 +91,7 @@ from pymdwizard.gui.Preview import Preview
 from pymdwizard.gui.error_list import ErrorList
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.jupyterstarter import JupyterStarter
+from pymdwizard.gui.settings import Settings
 from pymdwizard import __version__
 
 import sip
@@ -101,6 +104,7 @@ class PyMdWizardMainForm(QMainWindow):
     def __init__(self, parent=None):
         super(self.__class__, self).__init__()
 
+        self.settings = QSettings('USGS', 'pymdwizard')
         self.cur_fname = ''
         self.file_watcher = None
 
@@ -117,8 +121,8 @@ class PyMdWizardMainForm(QMainWindow):
         self.connect_events()
 
         self.load_default()
-        settings = QSettings('USGS', 'pymdwizard')
-        use_spelling = settings.value('use_spelling', "true")
+
+        use_spelling = self.settings.value('use_spelling', "true")
         if isinstance(use_spelling, str):
             use_spelling = eval(use_spelling.capitalize())
         self.switch_spelling(use_spelling)
@@ -136,6 +140,10 @@ class PyMdWizardMainForm(QMainWindow):
 
         utils.set_window_icon(self, remove_help=False)
 
+        # Initial window size/pos last saved. Use default values for first time
+        self.resize(self.settings.value("size", QSize(1300, 700)))
+        self.move(self.settings.value("pos", QPoint(50, 50)))
+
         self.metadata_root = MetadataRoot()
         self.ui.centralwidget.layout().addWidget(self.metadata_root)
 
@@ -145,8 +153,7 @@ class PyMdWizardMainForm(QMainWindow):
             self.ui.menuRecent_Files.addAction(self.recent_file_actions[i])
         self.update_recent_file_actions()
 
-        settings = QSettings('USGS', 'pymdwizard')
-        template_fname = settings.value('template_fname')
+        template_fname = self.settings.value('template_fname')
 
         if template_fname is not None:
             just_fname = os.path.split(template_fname)[-1]
@@ -179,8 +186,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionClear_validation.triggered.connect(self.clear_validation)
         self.ui.actionPreview.triggered.connect(self.preview)
         self.ui.actionNew.triggered.connect(self.new_record)
-        self.ui.actionBrowseTemplate.triggered.connect(self.set_template)
-        self.ui.actionRestoreBuiltIn.triggered.connect(self.restore_template)
+        self.ui.actionSettings.triggered.connect(self.set_settings)
         self.ui.actionLaunch_Jupyter.triggered.connect(self.launch_jupyter)
         self.ui.generate_review.triggered.connect(self.generate_review_doc)
         self.ui.actionLaunch_Help.triggered.connect(self.launch_help)
@@ -212,8 +218,7 @@ class PyMdWizardMainForm(QMainWindow):
         str: path and filename of the selected file or
         empty string if none was selected
         """
-        settings = QSettings('USGS', 'pymdwizard')
-        recent_files = settings.value('recentFileList', [])
+        recent_files = self.settings.value('recentFileList', [])
         if recent_files:
             dname, fname = os.path.split(recent_files[0])
         else:
@@ -243,7 +248,7 @@ class PyMdWizardMainForm(QMainWindow):
             self.set_current_file(fname)
             self.update_recent_file_actions()
 
-    def load_file(self, fname):
+    def load_file(self, fname, check_for_changes=True):
         """
         load a file's content into the application.
 
@@ -251,13 +256,17 @@ class PyMdWizardMainForm(QMainWindow):
         ----------
         fname : str
                 full file path and name of the file to load
+        check_for_changes : bool
+                flag to check for save prompt if file has unsaved changes
         Returns
         -------
         None
         """
-        changed = self.check_for_changes()
-        if changed == 'Cancel':
-            return changed
+
+        if check_for_changes:
+            changed = self.check_for_changes()
+            if changed == 'Cancel':
+                return changed
 
         self.file_watcher = QFileSystemWatcher([fname])
         self.file_watcher.fileChanged.connect(self.file_updated)
@@ -342,8 +351,7 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         str: file name and path
         """
-        settings = QSettings('USGS', 'pymdwizard')
-        recent_files = settings.value('recentFileList', [])
+        recent_files = self.settings.value('recentFileList', [])
         if recent_files:
             dname, fname = os.path.split(recent_files[0])
         else:
@@ -403,8 +411,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.load_default()
         save_as_fname = self.get_save_name()
         if save_as_fname:
-            settings = QSettings('USGS', 'pymdwizard')
-            template_fname = settings.value('template_fname')
+            template_fname = self.settings.value('template_fname')
             if template_fname is None or not os.path.exists(template_fname):
                 template_fname = utils.get_resource_path('CSDGM_Template.xml')
 
@@ -418,24 +425,14 @@ class PyMdWizardMainForm(QMainWindow):
             this_year = today[:4]
             self.metadata_root.idinfo.citation.ui.pubdate_widget.set_date(this_year)
 
-    def set_template(self):
-        fname = self.get_xml_fname()
-
-        if fname:
-            settings = QSettings('USGS', 'pymdwizard')
-            settings.setValue('template_fname', fname)
-            just_fname = os.path.split(fname)[-1]
-            self.ui.actionCurrentTemplate.setText('Current: ' + just_fname)
-
-    def restore_template(self):
-        settings = QSettings('USGS', 'pymdwizard')
-        fname = utils.get_resource_path('CSDGM_Template.xml')
-        settings.setValue('template_fname', None)
-        self.ui.actionCurrentTemplate.setText('Current: Built-in')
+    def set_settings(self):
+        self.settings_dialog = Settings(mainform=self)
+        self.settings_dialog.setWindowTitle('MetadataWizard Settings')
+        utils.set_window_icon(self.settings_dialog)
+        self.settings_dialog.show()
 
     def load_default(self):
-        settings = QSettings('USGS', 'pymdwizard')
-        template_fname = settings.value('template_fname')
+        template_fname = self.settings.value('template_fname')
 
         if template_fname is None:
             template_fname = utils.get_resource_path('CSDGM_Template.xml')
@@ -477,8 +474,7 @@ class PyMdWizardMainForm(QMainWindow):
             title = "Metadata Wizard - {}".format(stripped_name)
             self.setWindowTitle(title)
 
-            settings = QSettings('USGS', 'pymdwizard')
-            files = settings.value('recentFileList', [])
+            files = self.settings.value('recentFileList', [])
 
             try:
                 files.remove(fname)
@@ -488,7 +484,7 @@ class PyMdWizardMainForm(QMainWindow):
             files.insert(0, fname)
             del files[PyMdWizardMainForm.max_recent_files:]
 
-            settings.setValue('recentFileList', files)
+            self.settings.setValue('recentFileList', files)
 
             for widget in QApplication.topLevelWidgets():
                 if isinstance(widget, PyMdWizardMainForm):
@@ -505,8 +501,7 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
-        settings = QSettings('USGS', 'pymdwizard')
-        files = settings.value('recentFileList', [])
+        files = self.settings.value('recentFileList', [])
 
         num_recent_files = min(len(files), PyMdWizardMainForm.max_recent_files)
 
@@ -535,7 +530,6 @@ class PyMdWizardMainForm(QMainWindow):
                     xml_utils.save_to_file(self.metadata_root.to_xml(), self.cur_fname)
                 elif confirm == QMessageBox.Cancel:
                     return 'Cancel'
-                self.cur_fname = ''
         except:
             pass
         return None
@@ -571,6 +565,8 @@ class PyMdWizardMainForm(QMainWindow):
 
         """
         if self.exit() == 'Close':
+            self.settings.setValue("size", self.size())
+            self.settings.setValue("pos", self.pos())
             event.accept()
         else:
             event.ignore()
@@ -836,8 +832,6 @@ class PyMdWizardMainForm(QMainWindow):
             except:
                 pass
 
-
-
     def highlight_attr(self, widget):
         widget_parent = widget
         attr_frame = widget
@@ -904,8 +898,7 @@ class PyMdWizardMainForm(QMainWindow):
 
         self.recursive_spell(self.metadata_root, use_spelling)
 
-        settings = QSettings('USGS', 'pymdwizard')
-        settings.setValue('use_spelling', use_spelling)
+        self.settings.setValue('use_spelling', use_spelling)
 
     def recursive_spell(self, widget, which):
         """
@@ -1064,13 +1057,12 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
-        settings = QSettings('USGS', 'pymdwizard')
-        last_kernel = settings.value('last_kernel', '')
-        jupyter_dnames = settings.value('jupyter_dnames', [])
+        last_kernel = self.settings.value('last_kernel', '')
+        jupyter_dnames = self.settings.value('jupyter_dnames', [])
         if not jupyter_dnames:
             install_dir = utils.get_install_dname()
             jupyter_dnames = [os.path.join(install_dir, 'examples')]
-            settings.setValue('jupyter_dnames', jupyter_dnames)
+            self.settings.setValue('jupyter_dnames', jupyter_dnames)
 
         self.jupyter_dialog = JupyterStarter(last_kernel=last_kernel,
                                              previous_dnames=jupyter_dnames,
@@ -1079,8 +1071,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.jupyter_dialog.show()
 
     def update_jupyter_dnames(self, kernel, dname):
-        settings = QSettings('USGS', 'pymdwizard')
-        jupyter_dnames = settings.value('jupyter_dnames', [])
+        jupyter_dnames = self.settings.value('jupyter_dnames', [])
 
         try:
             jupyter_dnames.remove(dname)
@@ -1091,9 +1082,9 @@ class PyMdWizardMainForm(QMainWindow):
 
         jupyter_dnames.insert(0, dname)
         del jupyter_dnames[PyMdWizardMainForm.max_recent_files:]
-        settings.setValue('jupyter_dnames', jupyter_dnames)
+        self.settings.setValue('jupyter_dnames', jupyter_dnames)
 
-        settings.setValue('last_kernel', kernel)
+        self.settings.setValue('last_kernel', kernel)
 
     def about(self):
         """
@@ -1148,7 +1139,7 @@ class PyMdWizardMainForm(QMainWindow):
                 QMessageBox.information(self, "No Update Needed", msg)
 
         except BaseException as e:
-            if not show_uptodate_msg:
+            if show_uptodate_msg:
                 msg = 'Problem Encountered Updating from GitHub\n\nError Message:\n'
                 msg += str(e)
                 QMessageBox.information(self, "Update results", msg)
@@ -1240,7 +1231,10 @@ def launch_main(xml_fname=None, introspect_fname=None):
     mdwiz.show()
     splash.finish(mdwiz)
 
-    mdwiz.check_for_updates(show_uptodate_msg=False)
+    try:
+        mdwiz.check_for_updates(show_uptodate_msg=False)
+    except:
+        pass
 
     if xml_fname is not None and os.path.exists(xml_fname):
         mdwiz.open_file(xml_fname)

@@ -134,15 +134,6 @@
     <property name="toolTipsVisible">
      <bool>true</bool>
     </property>
-    <widget class="QMenu" name="menuTemplate_2">
-     <property name="title">
-      <string>Template</string>
-     </property>
-     <addaction name="actionCurrentTemplate"/>
-     <addaction name="separator"/>
-     <addaction name="actionBrowseTemplate"/>
-     <addaction name="actionRestoreBuiltIn"/>
-    </widget>
     <widget class="QMenu" name="menuOptional_Sections">
      <property name="toolTip">
       <string>Choose which optional sections to remove from the output record altogether.</string>
@@ -155,7 +146,7 @@
      <addaction name="actionEntity_and_Attribute"/>
      <addaction name="actionDistribution"/>
     </widget>
-    <addaction name="menuTemplate_2"/>
+    <addaction name="actionSettings"/>
     <addaction name="separator"/>
     <addaction name="actionLaunch_Jupyter"/>
     <addaction name="separator"/>
@@ -299,7 +290,7 @@
     <string>Validate current document against FGDC/BDP schema.</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+V</string>
+    <string>Ctrl+Shift+V</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -313,7 +304,7 @@
     <string>Clear validation errors highlighted currently.</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+C</string>
+    <string>Ctrl+Shift+C</string>
    </property>
    <property name="shortcutContext">
     <enum>Qt::ApplicationShortcut</enum>
@@ -500,6 +491,11 @@
   <action name="actionSpelling_flag">
    <property name="text">
     <string>Turn Spelling OFF</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>
