@@ -7,7 +7,12 @@ from PyQt5.QtWidgets import *
 
 from pymdwizard.gui.ui_files.spellinghighlighter import Highlighter
 
+
 class GrowingTextEdit(QPlainTextEdit):
+    """
+    Custom QPlainTextEdit Widget that resizes
+    to fit the contents dynamically
+    """
 
     def __init__(self, *args, **kwargs):
         super(GrowingTextEdit, self).__init__(*args, **kwargs)
@@ -18,13 +23,28 @@ class GrowingTextEdit(QPlainTextEdit):
 
         self.setFixedHeight(self.heightMin)
 
-    def sizeChange(self):
-        width = min(self.width(), 500)
+    def resizeEvent(self, e):
+        super(GrowingTextEdit, self).resizeEvent(e)
+        self.sizeChange()
 
-        char_width = int(width/5.25)
+    def sizeChange(self):
+        """
+        When the string in this widget is updated resize to contain the
+        appropriate number of lines displayed.
+
+        returns: None
+        """
+        self.setUpdatesEnabled(False)
         contents = self.toPlainText()
-        lines = textwrap.wrap(contents, char_width)
-        adj_doc_height = (len(lines) + contents.count('\n')) * 13 + 25
+        lines = contents.split('\n')
+
+        adj_doc_height = 25
+        for line in lines:
+            width = self.fontMetrics().boundingRect(line).width()
+            if width and (self.width()-10) > 0:
+                adj_doc_height += (round(width/(self.width()-10))+1) * self.fontMetrics().height()
+            else:
+                adj_doc_height += self.fontMetrics().height()
 
         if adj_doc_height <= self.heightMin:
             self.setFixedHeight(self.heightMin)
@@ -41,7 +61,7 @@ class GrowingTextEdit(QPlainTextEdit):
         except:
             pass
 
-
+        self.setUpdatesEnabled(True)
 
 if __name__ == "__main__":
 
