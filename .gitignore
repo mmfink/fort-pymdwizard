@@ -21,6 +21,7 @@ parts/
 sdist/
 var/
 venv/
+.spyproject/
 
 # Documentation build files
 docs/html_output
