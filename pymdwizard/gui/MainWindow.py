@@ -21,14 +21,14 @@ SCRIPT DEPENDENCIES
 ------------------------------------------------------------------------------
     This script is part of the pymdwizard package and is not intented to be
     used independently.  All pymdwizard package requirements are needed.
-    
+
     See imports section for external packages used in this script as well as
     inter-package dependencies
 
 
 U.S. GEOLOGICAL SURVEY DISCLAIMER
 ------------------------------------------------------------------------------
-This software has been approved for release by the U.S. Geological Survey 
+This software has been approved for release by the U.S. Geological Survey
 (USGS). Although the software has been subjected to rigorous review,
 the USGS reserves the right to update the software as needed pursuant to
 further analysis and review. No warranty, expressed or implied, is made by
@@ -87,6 +87,7 @@ from pymdwizard.core import xml_utils
 from pymdwizard.core import utils
 from pymdwizard.core import fgdc_utils
 from pymdwizard.core import review_utils
+from pymdwizard.core import export_utils
 from pymdwizard.gui.Preview import Preview
 from pymdwizard.gui.error_list import ErrorList
 from pymdwizard.gui.wiz_widget import WizardWidget
@@ -181,6 +182,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionOpen.triggered.connect(self.open_file)
         self.ui.actionSave.triggered.connect(self.save_file)
         self.ui.actionSave_as.triggered.connect(self.save_as)
+        self.ui.actionExport.triggered.connect(self.export)
         self.ui.actionExit.triggered.connect(self.exit)
         self.ui.actionRun_Validation.triggered.connect(self.validate)
         self.ui.actionClear_validation.triggered.connect(self.clear_validation)
@@ -397,6 +399,36 @@ class PyMdWizardMainForm(QMainWindow):
 
         self.set_current_file(fname)
         self.statusBar().showMessage("File saved", 2000)
+
+    def export(self):
+        """
+        Export the xml file to a different format. File must first be saved.
+        TODO: add file save confirmation step
+              give user option of where to save exported file
+
+        Returns
+        -------
+        None
+        """
+        if not self.cur_fname:
+            fname = self.get_save_name()
+            if not fname:
+                return
+        else:
+            fname = self.cur_fname
+
+        xml_utils.save_to_file(self.metadata_root.to_xml(), self.cur_fname)
+        out_name = fname.strip('.xml') + '.docx'
+
+        try:
+            export_utils.md_to_docx(fname, out_name)
+            msg = 'File exported as {}'.format(out_name)
+            QMessageBox.information(self, "Export completed", msg)
+
+        except BaseException:
+            import traceback
+            msg = "Problem encountered exporting document:\n{}".format(traceback.format_exc())
+            QMessageBox.warning(self, "Problem encountered", msg)
 
     def new_record(self):
         """
@@ -1111,7 +1143,7 @@ class PyMdWizardMainForm(QMainWindow):
         Parameters
         ----------
         e : qt event
-            
+
         show_uptodate_msg : bool
            Whether to display a msg if no updates found
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'MainWindow.ui'
+# Form implementation generated from reading ui file 'C:\Python27\Anaconda2\envs\pymd\Lib\site-packages\fort-pymdwizard\pymdwizard\gui\ui_files\MainWindow.ui'
 #
-# Created by: PyQt5 UI code generator 5.9.2
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -74,6 +74,8 @@ class Ui_MainWindow(object):
         self.actionSave_as = QtWidgets.QAction(MainWindow)
         self.actionSave_as.setShortcutContext(QtCore.Qt.ApplicationShortcut)
         self.actionSave_as.setObjectName("actionSave_as")
+        self.actionExport = QtWidgets.QAction(MainWindow)
+        self.actionExport.setObjectName("actionExport")
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setStatusTip("")
         self.actionExit.setShortcutContext(QtCore.Qt.ApplicationShortcut)
@@ -164,6 +166,7 @@ class Ui_MainWindow(object):
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionSave_as)
+        self.menuFile.addAction(self.actionExport)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.menuRecent_Files.menuAction())
         self.menuFile.addSeparator()
@@ -218,6 +221,8 @@ class Ui_MainWindow(object):
         self.actionSave_as.setText(_translate("MainWindow", "Save as ..."))
         self.actionSave_as.setToolTip(_translate("MainWindow", "Save the current document to a different file name on disk"))
         self.actionSave_as.setShortcut(_translate("MainWindow", "Ctrl+A"))
+        self.actionExport.setText(_translate("MainWindow", "Export to docx"))
+        self.actionExport.setToolTip(_translate("MainWindow", "Export the current xml file to a Word docx"))
         self.actionExit.setText(_translate("MainWindow", "Exit"))
         self.actionExit.setToolTip(_translate("MainWindow", "Exit the MetadataWizard"))
         self.actionItem_1.setText(_translate("MainWindow", "item 1"))

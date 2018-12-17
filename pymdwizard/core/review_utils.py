@@ -20,14 +20,14 @@ SCRIPT DEPENDENCIES
 ------------------------------------------------------------------------------
     This script is part of the pymdwizard package and is not intented to be
     used independently.  All pymdwizard package requirements are needed.
-    
+
     See imports section for external packages used in this script as well as
     inter-package dependencies
 
 
 U.S. GEOLOGICAL SURVEY DISCLAIMER
 ------------------------------------------------------------------------------
-This software has been approved for release by the U.S. Geological Survey 
+This software has been approved for release by the U.S. Geological Survey
 (USGS). Although the software has been subjected to rigorous review,
 the USGS reserves the right to update the software as needed pursuant to
 further analysis and review. No warranty, expressed or implied, is made by
@@ -158,6 +158,89 @@ def _load_styles(doc):
     font.underline = True
     font.bold = False
 
+def _load_mmf_styles(doc):
+    heading1 = doc.styles['Normal']
+    font = heading1.font
+    font.name = 'Georgia'
+    font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+    font.size = Pt(16)
+    font.bold = True
+
+    styles = doc.styles
+    new_heading_style = styles.add_style('fgdc title', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Heading 1']
+    font = new_heading_style.font
+    font.name = 'Georgia'
+    font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+    font.size = Pt(16)
+    font.bold = True
+
+    new_heading_style = styles.add_style('fgdc heading 2', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Heading 2']
+    font = new_heading_style.font
+    font.name = 'Georgia'
+    font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+    font.size = Pt(14)
+    font.bold = True
+
+    new_heading_style = styles.add_style('fgdc heading 3', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Heading 3']
+    font = new_heading_style.font
+    font.name = 'Georgia'
+    font.color.rgb = RGBColor(0x00, 0x00, 0x00)
+    font.size = Pt(12)
+    font.bold = True
+
+    new_heading_style = styles.add_style('review content heading', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Heading 3']
+    font = new_heading_style.font
+    font.name = 'Times New Roman'
+    font.color.rgb = RGBColor(0x36, 0x5F, 0x91)
+    font.size = Pt(13.5)
+    font.bold = True
+
+    new_heading_style = styles.add_style('fgdc bar', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Normal']
+    font = new_heading_style.font
+    font.name = 'Times New Roman'
+    font.color.rgb = RGBColor(0x80, 0x80, 0x80)
+    font.size = Pt(11)
+    font.bold = True
+
+    new_heading_style = styles.add_style('fgdc tag', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Normal']
+    font = new_heading_style.font
+    font.name = 'Times New Roman'
+    font.color.rgb = RGBColor(0x48, 0x8A, 0xC7)
+    font.size = Pt(11)
+    font.italic = True
+
+    new_heading_style = styles.add_style('fgdc tag content', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Normal']
+    font = new_heading_style.font
+    font.name = 'Lucida Console'
+    font.color.rgb = RGBColor(0x15, 0x15, 0x15)
+    font.size = Pt(9)
+    font.italic = False
+    font.bold = False
+
+    new_heading_style = styles.add_style('fgdc bold', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['Normal']
+    font = new_heading_style.font
+    font.name = 'Times New Roman'
+    font.color.rgb = RGBColor(0x15, 0x15, 0x15)
+    font.size = Pt(11)
+    font.italic = False
+    font.bold = True
+
+    new_heading_style = styles.add_style('fgdc link', WD_STYLE_TYPE.PARAGRAPH)
+    new_heading_style.base_style = styles['List Bullet']
+    font = new_heading_style.font
+    font.name = 'Georgia'
+    font.color.rgb = RGBColor(0x00, 0x00, 0xFF)
+    font.size = Pt(12)
+    font.underline = True
+    font.bold = False
 
 def _add_tag(doc, tag, content='', indent=0,
              tag_style='fgdc tag', content_style='fgdc tag content'):
