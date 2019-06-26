@@ -46,11 +46,11 @@ GenericTemplate = os.path.join(os.path.dirname(sys.argv[0]), "GenericFGDCTemplat
 
 installDir = os.path.dirname(os.path.realpath(__file__))
 #root_dir = os.path.dirname(os.path.dirname(installDir))
-root_dir = r'C:\Python27\Anaconda2\envs\pymd'
+root_dir = r'C:\Python3\Anaconda3\envs\pymd'
 arcpy.AddWarning("installDir :" + installDir)
 arcpy.AddWarning("root_dir :" + root_dir)
 
-pymdwiz_dir = r'C:\Python27\Anaconda2\envs\pymd\Lib\site-packages\fort-pymdwizard'
+pymdwiz_dir = r'C:\Python3\Anaconda3\envs\pymd\Lib\site-packages\fort-pymdwizard'
 arcpy.AddWarning("pymdwiz_dir :" + pymdwiz_dir)
 
 python_dir = root_dir
