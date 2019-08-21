@@ -251,7 +251,7 @@ def get_text_content(node, xpath=''):
         return ''
 
 
-def remove_control_characters(str):
+def remove_control_characters(s):
     """
     Removes control characters from string
 
@@ -263,7 +263,8 @@ def remove_control_characters(str):
     -------
     string
     """
-    return "".join(ch for ch in str if unicodedata.category(ch)[0] != "C" or ch in ['\n', '\t'])
+    s = str(s)
+    return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C" or ch in ['\n', '\t'])
 
 
 def element_to_df(results):
