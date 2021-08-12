@@ -52,7 +52,7 @@ from __future__ import absolute_import
 import os
 import sys
 
-__version__ = "2.0.5"
+__version__ = "2.0.6"
 
 try:
     import core
@@ -64,4 +64,4 @@ except ImportError:
 
 this_fname = os.path.realpath(__file__)
 root_dir = os.path.dirname(this_fname)
-sys.path.append(os.path.join(root_dir, 'gui', 'ui_files'))
+sys.path.append(os.path.join(root_dir, "gui", "ui_files"))
