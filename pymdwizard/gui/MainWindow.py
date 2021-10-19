@@ -95,7 +95,7 @@ from pymdwizard.gui.error_list import ErrorList
 from pymdwizard.gui.wiz_widget import WizardWidget
 from pymdwizard.gui.jupyterstarter import JupyterStarter
 from pymdwizard.gui.settings import Settings
-from pymdwizard.gui.sb_locator import SBLocator
+#from pymdwizard.gui.sb_locator import SBLocator
 from pymdwizard import __version__
 
 import sip
@@ -126,8 +126,9 @@ class PyMdWizardMainForm(QMainWindow):
         self.env_cache = {}
 
         self.sb_file = False
-        self.sb_locator = SBLocator(mainform=self)
-        utils.set_window_icon(self.sb_locator)
+        #self.sb_locator = SBLocator(mainform=self)
+        self.sb_locator = None
+        #utils.set_window_icon(self.sb_locator)
 
         self.load_default()
 
@@ -465,8 +466,8 @@ class PyMdWizardMainForm(QMainWindow):
         self.set_current_file(fname)
         self.statusBar().showMessage("File saved", 2000)
 
-        if self.sb_file:
-            self.sb_locator.put_fgdc_file()
+        # if self.sb_file:
+        #     self.sb_locator.put_fgdc_file()
 
     def export(self):
         """
