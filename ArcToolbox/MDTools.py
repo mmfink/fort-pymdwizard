@@ -37,12 +37,12 @@ def CreateCopyMDRecord(InputXML_or_DataLayer, MDRecordCopy): #Creates unmodified
         if os.path.exists(MDRecordCopy):
             os.remove(MDRecordCopy)
     except IOError:
-        raise Exception, "This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+        raise Exception("This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
     
     try:  
         arcpy.XSLTransform_conversion(InputXML_or_DataLayer, Exact_Copy_XSLT, MDRecordCopy)
     except:
-        raise Exception, str(arcpy.GetMessages(2))
+        raise Exception(str(arcpy.GetMessages(2)))
 
 def RemoveNameSpace(MDFile):#Eliminate namespace tags from root element in xml if present (appear when ExportFGDC is run on spatial data sets).
     
@@ -112,7 +112,7 @@ def removeNodeByName(XMLfile, NodeName):
     lRemoveList = []
 
     for child in lRoot.findall(NodeName):#NodeName would be passed as 'eainfo', for example
-        print child
+        print(child)
         lRemoveList.append(child)
 
     for child in lRemoveList:
@@ -158,7 +158,7 @@ def replaceXMLNodeContents(XMLfile, NodePath, NewNodeContents, addifmissing=True
         stub.insert(0, NodeContent)
     
     else:
-        raise RuntimeError, "Unable to update the XML file. Check that the file exists, the provided node-path within the XML, or permission settings."
+        raise RuntimeError("Unable to update the XML file. Check that the file exists, the provided node-path within the XML, or permission settings.")
         
     etree.write(XMLfile)
     #etree.write(r"C:\temp\MetadataWizard\bc_int_FGDCxxxx.xml")
@@ -208,7 +208,7 @@ def changeXMLNodeText(XMLfile, path, text, addifmissing=True):#Updates the text 
         targetNode.text = text 
        
     else:
-        raise RuntimeError, "Unable to update the XML file. Check that the file exists, the provided node-path within the XML, or permission settings."
+        raise RuntimeError("Unable to update the XML file. Check that the file exists, the provided node-path within the XML, or permission settings.")
     
     etree.write(XMLfile)
     
@@ -352,7 +352,7 @@ def ReRunFGDCTranslator(InputXML):
         if os.path.exists(OutputXML):
             os.remove(OutputXML) 
     except:
-        raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+        raise Exception("Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
     
     arcpy.USGSMPTranslator_conversion(InputXML, "#", "xml", OutputXML)
     os.remove(InputXML)#Remove original input
@@ -381,7 +381,7 @@ if __name__ == '__main__':
     
 #    Test some things
 
-    print "Script completed."
+    print("Script completed.")
     
 
         

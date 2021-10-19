@@ -66,13 +66,13 @@ def GetRawXML(InputXML_or_DataLayer, OutputRawXML):
         if os.path.exists(OutputRawXML):
             os.remove(OutputRawXML)
     except IOError:
-        raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+        raise Exception("Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
     
     try:  
         arcpy.XSLTransform_conversion(InputXML_or_DataLayer, Exact_Copy_XSLT, OutputRawXML)
         #arcpy.AddMessage(arcpy.GetMessages(0))
     except:
-        raise Exception, str(arcpy.GetMessages(2))
+        raise Exception(str(arcpy.GetMessages(2)))
         
 def DetermineMDType(RawXMLFile):
     '''
@@ -143,7 +143,7 @@ def ConvertArc10toFGDC(SourceFile, OutputXML_inFGDCFormat, TempDir):
             if os.path.exists(OutputXML_inFGDCFormat):
                 os.remove(OutputXML_inFGDCFormat)
         except:
-            raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+            raise Exception("Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
         
         try:
             #arcpy.ESRITranslator_conversion(SourceFile, Translator, OutputXML_inFGDCFormat)
@@ -158,7 +158,7 @@ def ConvertArc10toFGDC(SourceFile, OutputXML_inFGDCFormat, TempDir):
             shutil.copy(TranslateOut, OutputXML_inFGDCFormat)
             
         except:
-            raise Exception, arcpy.AddError(arcpy.GetMessages(2))
+            raise Exception(arcpy.AddError(arcpy.GetMessages(2)))
         
         arcpy.AddMessage("\n")
         arcpy.AddMessage("Metadata converted successfully.")
@@ -168,7 +168,7 @@ def ExportFGDCtoFGDC(InputXMLFile, OutputHTMLFile):
         if os.path.exists(OutputHTMLFile):
             os.remove(OutputHTMLFile) 
     except:
-        raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+        raise Exception("Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
     
 #Implement the USGSMPTranslator tool to export to FGDC (effectively, this is an FGDC to FGDC translation). 
 #Usage: USGSMPTranslator_conversion (source, config, conversion, output, error log)     
@@ -186,7 +186,7 @@ def CleanESRIFGDC(InputXMLFile, OutputHTMLFile):
         if os.path.exists(OutputHTMLFile):
             os.remove(OutputHTMLFile) 
     except:
-        raise Exception, "Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs."
+        raise Exception("Error. This tool requires read/write access to the directories where the temporary and final outputs are saved. Please choose another directory for the tool outputs.")
     
     inputDOM = minidom.parse(InputXMLFile)
     changed = False
@@ -267,7 +267,7 @@ def GetMDContent(sourceDataFile, OutputFGDCXML, TempDir):
             arcpy.SynchronizeMetadata_conversion(sourceDataFile, "ALWAYS")
             ConvertArc10toFGDC(sourceDataFile, OutputFGDCXML, TempDir)
         elif metadataType == "Unknown":
-            raise Exception, "The format of the metadata could not be determined. Possible explanations include: the data layer is missing metadata, the metadata is a malformed xml, or the metadata record is in a format other than FGDC or ESRI. Please investigate the record visually or recreate the metadata record. If the record is intact, try converting it to FGDC or ESRI format before using this tool."      
+            raise Exception("The format of the metadata could not be determined. Possible explanations include: the data layer is missing metadata, the metadata is a malformed xml, or the metadata record is in a format other than FGDC or ESRI. Please investigate the record visually or recreate the metadata record. If the record is intact, try converting it to FGDC or ESRI format before using this tool.")
     finally:
         if os.path.exists(tmpXML):
                 os.remove(tmpXML)

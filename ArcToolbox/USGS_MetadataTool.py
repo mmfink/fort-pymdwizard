@@ -263,7 +263,7 @@ def ProcessRoutine(ArgVariables):
             data_contents = introspector.introspect_dataset(InputData)
             input_fname = os.path.split(InputData)[1]
             contents_fname = os.path.join(WorkingDir, input_fname + ".p")
-            pickle.dump(data_contents, open(contents_fname, "wb" ))
+            pickle.dump(data_contents, open(contents_fname, "wb"))
         else:
             contents_fname = ''
 
@@ -821,7 +821,7 @@ def msg(message, is_error):
         arcpy.AddError(message)
     else:
         arcpy.AddMessage(message)
-    print message
+    print(message)
 
 def arcpyError():
     """Adds arcpy error messages to a print statement and ArcGIS window."""
