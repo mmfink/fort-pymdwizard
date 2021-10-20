@@ -37,17 +37,17 @@
   },
   {
     "name": "Metadata Wizard",
-    "organization": "U.S. Geological Survey",
+    "organization": "Colorado State University",
     "description": "Tool for editing and validating FGDC metadata records",
-    "version": "2.0.7",
+    "version": "2.1.0",
     "status": "Development",
-    "homepage": "https://usgs.github.io/fort-pymdwizard/",
-    "downloadURL": "https://github.com/usgs/fort-pymdwizard/archive/refs/heads/dev.zip",
+    "homepage": "https://github.com/mmfink/fort-pymdwizard/",
+    "downloadURL": "https://github.com/mmfink/fort-pymdwizard/archive/refs/heads/2.1.0.zip",
 
     "openSourceProject": 1,
-    "license": "https://github.com/usgs/fort-pymdwizard/blob/dev/LICENSE.md",
+    "license": "https://github.com/mmfink/fort-pymdwizard/blob/2.1.0/LICENSE.md",
     "vcs": "git",
-    "repository": "https://github.com/usgs/fort-pymdwizard/tree/dev",
+    "repository": "https://github.com/mmfink/fort-pymdwizard/tree/2.1.0",
 
     "tags": [
       "metadata",
@@ -64,11 +64,11 @@
     ],
 
     "contact": {
-      "name": "Kyle Enns",
-      "email": "kenns@usgs.gov"
+      "name": "Michelle M. Fink",
+      "email": "michelle.fink@colostate.edu"
     },
     "updated": {
-      "metadataLastUpdated": "2017-09-22"
+      "metadataLastUpdated": "2021-10-20"
     }
   }
 ]
