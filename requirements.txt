@@ -3,10 +3,9 @@ lxml
 defusedxml
 pandas
 jupyter
-gdal
+gdal >= 2.2.3
 geopandas
 pyqt>=5.6.0
 xlrd
 python-docx
 habanero
-gitpython
