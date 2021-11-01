@@ -86,3 +86,5 @@ pymdwizard/resources/CNHP_FGDC_Template.xml
 
 #Spyder
 .spyproject/
+
+tests/
