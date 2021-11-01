@@ -625,20 +625,20 @@ class PyMdWizardMainForm(QMainWindow):
                     xml_utils.fname_to_node(self.cur_fname)
                 )
 
-            if cur_xml != disk_xml:
-                msg = "Do you want to save your changes?"
+                if cur_xml != disk_xml:
+                    msg = "Do you want to save your changes?"
                 alert = QDialog()
-                self.last_updated = time.time()
-                confirm = QMessageBox.question(
-                    self,
-                    "Save Changes",
-                    msg,
-                    QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
-                )
-                if confirm == QMessageBox.Yes:
-                    xml_utils.save_to_file(self.metadata_root.to_xml(), self.cur_fname)
-                elif confirm == QMessageBox.Cancel:
-                    return "Cancel"
+                    self.last_updated = time.time()
+                    confirm = QMessageBox.question(
+                        self,
+                        "Save Changes",
+                        msg,
+                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
+                    )
+                    if confirm == QMessageBox.Yes:
+                        xml_utils.save_to_file(self.metadata_root.to_xml(), self.cur_fname)
+                    elif confirm == QMessageBox.Cancel:
+                        return "Cancel"
         except:
             pass
         return None
