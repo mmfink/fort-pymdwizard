@@ -64,8 +64,8 @@ except ImportError:
     from PyQt5.QtWebEngineWidgets import QWebEnginePage
     from PyQt5.QtWebChannel import QWebChannel
     from PyQt5.QtWebEngineWidgets import QWebEngineView
-    from PyQt5.QtCore import QObject, pyqtSlot
-from PyQt5.QtCore import pyqtSlot, QStringListModel
+    #from PyQt5.QtCore import QObject, pyqtSlot
+from PyQt5.QtCore import QStringListModel
 
 from pymdwizard.core import utils
 from pymdwizard.core import xml_utils
@@ -296,7 +296,7 @@ class Spdom(WizardWidget):
     def remove_rect(self):
         if self.has_rect:
             self.has_rect = False
-            jstr = """removeRect()"""
+            jstr = """removeRect();"""
             self.evaluate_js(jstr)
 
     def evaluate_js(self, jstr):
