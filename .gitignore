@@ -88,3 +88,5 @@ pymdwizard/resources/CNHP_FGDC_Template.xml
 .spyproject/
 
 tests/
+
+pymdwizard/.pylint.d/
