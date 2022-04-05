@@ -3,7 +3,12 @@
 """
 The MetadataWizard(pymdwizard) software was developed by the
 U.S. Geological Survey Fort Collins Science Center.
-See: https://github.com/usgs/fort-pymdwizard for current project source code
+
+This is a forked version (https://github.com/mmfink/fort-pymdwizard) with
+modifications by Michelle M. Fink, Colorado Natural Heritage Program,
+Colorado State University
+
+See: https://github.com/usgs/fort-pymdwizard for original project source code
 See: https://usgs.github.io/fort-pymdwizard/ for current user documentation
 See: https://github.com/usgs/fort-pymdwizard/tree/master/examples
     for examples of use in other scripts
@@ -52,7 +57,7 @@ from __future__ import absolute_import
 import os
 import sys
 
-__version__ = "2.0.6"
+__version__ = "2.1.0"
 
 try:
     import core
