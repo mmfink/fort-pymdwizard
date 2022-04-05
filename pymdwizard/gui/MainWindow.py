@@ -55,7 +55,7 @@ import tempfile
 import time
 import datetime
 import shutil
-from pathlib import Path
+#from pathlib import Path
 import subprocess
 
 from PyQt5.QtWidgets import QMainWindow
@@ -215,12 +215,12 @@ class PyMdWizardMainForm(QMainWindow):
     def anacondaprompt(self):
 
         if os.name == "nt":
-            root_dir = utils.get_install_dname("root")
+            root_dir = utils.get_install_dname("python")
             my_env = os.environ.copy()
-            my_env["PYTHONPATH"] = os.path.join(root_dir, "Python36_64")
+            my_env["PYTHONPATH"] = root_dir
             my_env["PATH"] = ";".join(
                 [
-                    os.path.join(root_dir, "Python36_64", "Scripts", "conda_exes"),
+                    os.path.join(root_dir, "Python36_64", "Scripts", "conda_exes"), #???
                     my_env["PATH"],
                 ]
             )
@@ -386,7 +386,7 @@ class PyMdWizardMainForm(QMainWindow):
                 "The file you are editing has been changed on disk.  "
                 "Would you like to reload this File?"
             )
-            alert = QDialog()
+            #alert = QDialog()
             self.last_updated = time.time()
             confirm = QMessageBox.question(
                 self, "File Changed", msg, QMessageBox.Yes | QMessageBox.No
@@ -454,7 +454,7 @@ class PyMdWizardMainForm(QMainWindow):
 
         tool_comment = (
             "Record created using version {} of the "
-            "USGS Metadata Wizard tool. (https://github.com/usgs/"
+            "USGS Metadata Wizard tool. (https://github.com/mmfink/"
             "fort-pymdwizard)".format(__version__)
         )
         xml_contents = self.metadata_root.to_xml()
@@ -627,7 +627,7 @@ class PyMdWizardMainForm(QMainWindow):
 
                 if cur_xml != disk_xml:
                     msg = "Do you want to save your changes?"
-                alert = QDialog()
+                    #alert = QDialog()
                     self.last_updated = time.time()
                     confirm = QMessageBox.question(
                         self,
@@ -1164,7 +1164,7 @@ class PyMdWizardMainForm(QMainWindow):
 
             if time.time() - self.last_updated > 4:
                 msg = "Would you like to save the current file before continuing?"
-                alert = QDialog()
+                #alert = QDialog()
                 self.last_updated = time.time()
                 confirm = QMessageBox.question(
                     self,
@@ -1183,9 +1183,9 @@ class PyMdWizardMainForm(QMainWindow):
                 import os, sys, subprocess
 
                 def open_file(filename):
-                    if sys.platform == "win32":
+                    if platform.system() == "Windows":
                         os.startfile('"{}"'.format(filename))
-                    elif sys.platform == "darwin":
+                    elif sys.platform == "Darwin":
                         opener = "open"
                         subprocess.call([opener, filename])
 
@@ -1232,7 +1232,7 @@ class PyMdWizardMainForm(QMainWindow):
             jupyter_dnames.remove(dname)
         except ValueError:
             pass
-            my_env = os.environ.copy()
+            #my_env = os.environ.copy()
             # my_env["PYTHONPATH"] = os.path.join(root_dir, "Python36_64")
 
         jupyter_dnames.insert(0, dname)

@@ -10,6 +10,7 @@
 
     <link rel="stylesheet" href="leaflet/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin=""/>
     <script src="leaflet/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <style>html, body {width: 100%;height: 100%;margin: 0;padding: 0;}</style>
     <style>#map {position:absolute;top:0;bottom:0;right:0;left:0;}</style>
 </head>
@@ -150,7 +151,7 @@
         map.addLayer(rect);
 
         if (west > east) {
-            map.addLayer(rect2)
+            map.addLayer(rect2);
         }
 
     }
