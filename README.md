@@ -1,8 +1,8 @@
-[![Build Status](https://travis-ci.org/talbertc-usgs/fort-pymdwizard.svg?branch=master)](https://travis-ci.org/talbertc-usgs/fort-pymdwizard)
-[![Hackage](https://coveralls.io/repos/github/talbertc-usgs/fort-pymdwizard/badge.svg?branch=master)](https://coveralls.io/github/talbertc-usgs/fort-pymdwizard?branch=master)
+This is a forked and modified version of the USGS Metadata Wizard. Modifications to the original work are by Michelle M. Fink, Colorado Natural Heritage Program, Colorado State University [michelle.fink@colostate.edu]. Changes made are to facilitate my own, non-government related metadata needs. As such, this fork may not work for you or anyone else but me. My use of this code does not imply approval or endorsement by the USGS or any other government entity.  
 
-<img width="250" align="right" src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/USGS_logo_green.svg/500px-USGS_logo_green.svg.png"/>
+The scripts in this repository are free software: you can redistribute and/or modify them under the terms of the [Creative Commons Attribution 4.0 International (CC BY 4.0) license](http://creativecommons.org/licenses/by/4.0/).  
 
+The scripts are distributed in the hope that they will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
 Metadata Wizard
