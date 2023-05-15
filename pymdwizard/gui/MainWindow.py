@@ -110,7 +110,7 @@ class PyMdWizardMainForm(QMainWindow):
     def __init__(self, parent=None):
         super(self.__class__, self).__init__()
 
-        self.settings = QSettings("USGS_2.0.7", "pymdwizard_2.0.7")
+        self.settings = QSettings("USGS", "pymdwizard")
         self.cur_fname = ""
         self.file_watcher = None
 
@@ -507,7 +507,7 @@ class PyMdWizardMainForm(QMainWindow):
     def new_record(self):
         """
         Create a new record.
-        Starts by making a copy of the template file 'CSDGM_Template.xml'.
+        Starts by making a copy of the template file 'CNHP_FGDC_Template.xml'.
             in the resources folder to a name selected in a save as dialog.
         Then updates the MD date to today.
         Returns
@@ -519,7 +519,7 @@ class PyMdWizardMainForm(QMainWindow):
         if save_as_fname:
             template_fname = self.settings.value("template_fname")
             if template_fname is None or not os.path.exists(template_fname):
-                template_fname = utils.get_resource_path("CSDGM_Template.xml")
+                template_fname = utils.get_resource_path("CNHP_FGDC_Template.xml")
 
             shutil.copyfile(template_fname, save_as_fname)
             self.load_file(save_as_fname)
@@ -541,7 +541,7 @@ class PyMdWizardMainForm(QMainWindow):
         template_fname = self.settings.value("template_fname")
 
         if template_fname is None:
-            template_fname = utils.get_resource_path("CSDGM_Template.xml")
+            template_fname = utils.get_resource_path("CNHP_FGDC_Template.xml")
         elif not os.path.exists(template_fname):
             msg = (
                 "The previous template file specified, {}, could not be "
@@ -550,7 +550,7 @@ class PyMdWizardMainForm(QMainWindow):
             msg += "\nCheck that the file has not beed deleted, renamed " "or moved."
             msg += "Defaulting to the built in template.".format(template_fname)
             QMessageBox.warning(self, "Template file missing", msg)
-            template_fname = utils.get_resource_path("CSDGM_Template.xml")
+            template_fname = utils.get_resource_path("CNHP_FGDC_Template.xml")
 
         self.load_file_content(template_fname)
         self.cur_fname = ""

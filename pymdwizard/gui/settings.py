@@ -85,11 +85,11 @@ class Settings(QWidget):
         self.ui.btn_save.clicked.connect(self.save_settings)
 
     def load_settings(self):
-        self.settings = QSettings("USGS_2.0.7", "pymdwizard_2.0.7")
+        self.settings = QSettings("USGS", "pymdwizard")
         template_fname = self.settings.value("template_fname")
 
         if template_fname is None:
-            template_fname = utils.get_resource_path("CSDGM_Template.xml")
+            template_fname = utils.get_resource_path("CNHP_FGDC_Template.xml")
 
         self.ui.template_fname.setText(template_fname)
 
@@ -152,7 +152,7 @@ class Settings(QWidget):
         self.ui.font_size.setValue(9)
 
     def restore_template(self):
-        template_fname = utils.get_resource_path("CSDGM_Template.xml")
+        template_fname = utils.get_resource_path("CNHP_FGDC_Template.xml")
         self.ui.template_fname.setText(template_fname)
 
     def browse_template(self):
