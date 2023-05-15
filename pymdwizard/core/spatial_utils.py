@@ -135,29 +135,26 @@ def get_geographic_extent(layer):
     -------
     (min_x, max_x, min_y, max_y)
     """
+    
     min_x, max_x, min_y, max_y = get_extent(layer)
-
-    x = np.linspace(min_x, max_x, num=10)
-    y = np.linspace(min_y, max_y, num=10)
-
-    edge_points = (
-        [(min_x, this_y) for this_y in y]
-        + [(max_x, this_y) for this_y in y]
-        + [(this_x, min_y) for this_x in x]
-        + [(this_x, max_y) for this_x in x]
-    )
-
     srs = get_ref(layer)
+    srs.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
+    target = osr.SpatialReference()
+    target.ImportFromEPSG(4326)
+    target.SetAxisMappingStrategy(osr.OAMS_TRADITIONAL_GIS_ORDER)
 
-    geographic = osr.SpatialReference()
-    geographic.ImportFromEPSG(4326)
-
-    t_points = np.apply_along_axis(
-        transform_point, 1, edge_points, from_srs=srs, to_srs=geographic
-    )
-    east, north = t_points.max(0)
-    west, south = t_points.min(0)
-
+    spatialRef = layer.GetSpatialRef()
+    spatialRef.ExportToProj4()
+    spatialRef.AutoIdentifyEPSG()
+    spref = spatialRef.GetAuthorityCode(None)
+    
+    # Basically just run transform_point until no inf values return (weird bug with transform_point)
+    try_again = True
+    while try_again:
+        west, south  = transform_point((min_x, min_y),from_srs=srs, to_srs=target)
+        east, north  = transform_point((max_x, max_y),from_srs=srs, to_srs=target)
+        if float("inf") not in [south, west, north, east] and float("-inf") not in [south, west, north, east]:
+            try_again = False
     return west, east, south, north
 
 
@@ -390,14 +387,14 @@ def get_params(layer):
     get_abs_resolution(layer, params)
 
     # SPCS_Zone
-    if params["mapprojn"] is not None and "stateplane" in params["mapprojn"].lower():
+    if params["mapprojn"] != None and "stateplane" in params["mapprojn"].lower():
         parts = params["mapprojn"].split("_")
         params["spcszone"] = str(parts[parts.index("FIPS") + 1])
     else:
         params["spcszone"] = "Unknown"
 
     # ARC_Zone
-    if params["mapprojn"] is not None and "_arc_system" in params["mapprojn"].lower():
+    if params["mapprojn"] != None and "_arc_system" in params["mapprojn"].lower():
         parts = params["mapprojn"].split("_")
         params["arczone"] = str(parts[-1])
     else:
@@ -671,7 +668,7 @@ def equidistant_conic(params):
 
     equicon = xml_node("equicon")
     stdparll = xml_node("stdparll", params["stdparll"], equicon)
-    if params["stdparll_2"] is not "Unknown":
+    if params["stdparll_2"] != "Unknown":
         stdparll_2 = xml_node("stdparll", params["stdparll_2"], equicon)
 
     for item in ["longcm", "latprjo", "feast", "fnorth"]:
@@ -682,9 +679,9 @@ def equidistant_conic(params):
 def unknown_projection(params):
     mapprojp = xml_node("mapprojp")
 
-    if params["stdparll"] is not "Unknown":
+    if params["stdparll"] != "Unknown":
         stdparll = xml_node("stdparll", params["stdparll"], mapprojp)
-    if params["stdparll_2"] is not "Unknown":
+    if params["stdparll_2"] != "Unknown":
         stdparll_2 = xml_node("stdparll", params["stdparll_2"], mapprojp)
 
     for k in [
@@ -840,7 +837,7 @@ def lambert_conformal_conic(params):
     """
     lambertc = xml_node("lambertc")
     stdparll = xml_node("stdparll", params["stdparll"], lambertc)
-    if params["stdparll_2"] is not "Unknown":
+    if params["stdparll_2"] != "Unknown":
         stdparll_2 = xml_node("stdparll", params["stdparll_2"], lambertc)
 
     for item in ["longcm", "latprjo", "feast", "fnorth"]:
@@ -1709,7 +1706,7 @@ def get_raster_attribute_table(fname):
     band = raster.GetRasterBand(1)
     rat = band.GetDefaultRAT()
 
-    if rat is not None:
+    if rat != None:
         df = rat_to_df(rat)
         if not df.columns == ["Histogram"]:
             return df

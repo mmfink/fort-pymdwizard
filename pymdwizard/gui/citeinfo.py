@@ -80,13 +80,14 @@ class Citeinfo(WizardWidget):  #
     acceptable_tags = ["citation", "citeinfo"]
 
     def __init__(self, parent=None, include_lwork=True):
-        self.origin_hint = 'Suggested format "FIRST M. LAST"'
+        self.origin_hint = 'Suggested format "First M. Last"'
         self.include_lwork = include_lwork
         self.schema = "bdp"
         WizardWidget.__init__(self, parent=parent)
         self.doi_lookup = None
         self.highlighter = Highlighter(self.ui.fgdc_title.document())
         self.ui.fgdc_title.textChanged.connect(self.remove_returns)
+        self.ui.fgdc_title.setMaximumHeight(self.ui.fgdc_geoform.height())
         self.ui.fgdc_title.mouseMoveEvent = self.mouse_move
 
     def mouse_move(self, e):

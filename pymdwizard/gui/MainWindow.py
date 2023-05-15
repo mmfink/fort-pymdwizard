@@ -58,6 +58,8 @@ import shutil
 #from pathlib import Path
 import subprocess
 
+from os.path import dirname
+
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QSplashScreen
@@ -108,7 +110,7 @@ class PyMdWizardMainForm(QMainWindow):
     def __init__(self, parent=None):
         super(self.__class__, self).__init__()
 
-        self.settings = QSettings("USGS", "pymdwizard")
+        self.settings = QSettings("USGS_2.0.7", "pymdwizard_2.0.7")
         self.cur_fname = ""
         self.file_watcher = None
 
@@ -209,7 +211,7 @@ class PyMdWizardMainForm(QMainWindow):
         self.ui.actionEntity_and_Attribute.triggered.connect(self.use_eainfo)
         self.ui.actionDistribution.triggered.connect(self.use_distinfo)
         self.ui.actionSpelling_flag.triggered.connect(self.spelling_switch_triggered)
-        self.ui.anacondaprompt.triggered.connect(self.anacondaprompt)
+        # self.ui.anacondaprompt.triggered.connect(self.anacondaprompt)
         self.ui.actionOpen_sb.triggered.connect(self.open_sb_file)
 
     def anacondaprompt(self):
@@ -220,7 +222,7 @@ class PyMdWizardMainForm(QMainWindow):
             my_env["PYTHONPATH"] = root_dir
             my_env["PATH"] = ";".join(
                 [
-                    os.path.join(root_dir, "Python36_64", "Scripts", "conda_exes"), #???
+                    os.path.join(root_dir, "pymdwizard", "Scripts", "conda_exes"),
                     my_env["PATH"],
                 ]
             )
@@ -439,6 +441,9 @@ class PyMdWizardMainForm(QMainWindow):
         -------
         None
         """
+        # Test
+        utils.get_install_dname()
+
         if not self.cur_fname:
             fname = self.get_save_name()
             if not fname:
@@ -835,46 +840,51 @@ class PyMdWizardMainForm(QMainWindow):
         None
         """
 
-        xpath = sender.data(1)
-        section = xpath.split("/")[1]
-
-        if section == "idinfo":
-            subsection = xpath.split("/")[2]
-            if subsection == "spdom":
-                parent_section = self.metadata_root.switch_section(2)
-            else:
-                parent_section = self.metadata_root.switch_section(0)
-        elif section == "dataqual":
-            parent_section = self.metadata_root.switch_section(1)
-        elif section == "spdoinfo" or section == "spref":
-            parent_section = self.metadata_root.switch_section(2)
-        elif section == "eainfo":
-            parent_section = self.metadata_root.switch_section(3)
-        elif section == "eainfo":
-            parent_section = self.metadata_root.switch_section(3)
-        elif section == "distinfo":
-            parent_section = self.metadata_root.switch_section(4)
-        elif section == "metainfo":
-            parent_section = self.metadata_root.switch_section(5)
-
-        if self.last_highlight is not None and not sip.isdeleted(self.last_highlight):
-            self.highlight_error(self.last_highlight, self.last_highlight.toolTip())
-
-        widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
-        bad_widget = widget_lookup.xpath_march(xpath, as_list=True)
-
         try:
-            parent_wizwidget = [
-                thing
-                for thing in parent_section.children()
-                if isinstance(thing, WizardWidget)
-            ][0]
-            parent_wizwidget.scroll_area.ensureWidgetVisible(bad_widget[0].widget)
-        except:
-            pass
+            xpath = sender.data(1)
+            section = xpath.split("/")[1]
 
-        self.last_highlight = bad_widget[0].widget
-        self.highlight_error(bad_widget[0].widget, sender.text(), superhot=True)
+            if section == "idinfo":
+                subsection = xpath.split("/")[2]
+                if subsection == "spdom":
+                    parent_section = self.metadata_root.switch_section(2)
+                else:
+                    parent_section = self.metadata_root.switch_section(0)
+            elif section == "dataqual":
+                parent_section = self.metadata_root.switch_section(1)
+            elif section == "spdoinfo" or section == "spref":
+                parent_section = self.metadata_root.switch_section(2)
+            elif section == "eainfo":
+                parent_section = self.metadata_root.switch_section(3)
+            elif section == "eainfo":
+                parent_section = self.metadata_root.switch_section(3)
+            elif section == "distinfo":
+                parent_section = self.metadata_root.switch_section(4)
+            elif section == "metainfo":
+                parent_section = self.metadata_root.switch_section(5)
+
+            if self.last_highlight is not None and not sip.isdeleted(self.last_highlight):
+                self.highlight_error(self.last_highlight, self.last_highlight.toolTip())
+
+            widget_lookup = self.metadata_root.make_tree(widget=self.metadata_root)
+            bad_widget = widget_lookup.xpath_march(xpath, as_list=True)
+
+            try:
+                parent_wizwidget = [
+                    thing
+                    for thing in parent_section.children()
+                    if isinstance(thing, WizardWidget)
+                ][0]
+                parent_wizwidget.scroll_area.ensureWidgetVisible(bad_widget[0].widget)
+            except:
+                pass
+
+            self.last_highlight = bad_widget[0].widget
+            self.highlight_error(bad_widget[0].widget, sender.text(), superhot=True)
+        except:
+            msg = f"We encountered a problem highlighting and navigating to that error.\n\n"
+            msg += f"The xpath of the xml error is:\n\n{xpath}"
+            QMessageBox.warning(self, "Problem encountered", msg)
 
     def highlight_error(self, widget, error_msg, superhot=False):
         """
@@ -1132,6 +1142,8 @@ class PyMdWizardMainForm(QMainWindow):
         self.preview_dialog.setWindowTitle("Metadata Preview")
         self.preview_dialog.setLayout(self.preview.layout())
 
+        self.preview_dialog.resize(600, 600)
+
         self.preview_dialog.exec_()
 
     def launch_help(self):
@@ -1151,6 +1163,8 @@ class PyMdWizardMainForm(QMainWindow):
         self.preview_dialog.setWindowTitle("MetadataWizard Help")
         self.preview_dialog.setLayout(self.preview.layout())
 
+        self.preview_dialog.resize(1000, 600)
+
         self.preview_dialog.exec_()
 
     def generate_review_doc(self):
@@ -1164,7 +1178,9 @@ class PyMdWizardMainForm(QMainWindow):
 
             if time.time() - self.last_updated > 4:
                 msg = "Would you like to save the current file before continuing?"
-                #alert = QDialog()
+                exists_msg = "File already exists, would you like to overwrite it? Selecting 'No' "
+                exists_msg += "will allow you to SaveAs."
+                alert = QDialog()
                 self.last_updated = time.time()
                 confirm = QMessageBox.question(
                     self,
@@ -1173,11 +1189,28 @@ class PyMdWizardMainForm(QMainWindow):
                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel,
                 )
                 if confirm == QMessageBox.Yes:
-                    self.save_file()
+                    self.save_as()
+
                 elif confirm == QMessageBox.Cancel:
                     return
             try:
                 cur_content = xml_utils.XMLRecord(self.cur_fname)
+                import os
+                if os.path.exists(out_fname):
+                    confirm2 = QMessageBox.question(self,
+                        "File Overwrite",
+                        exists_msg,
+                        QMessageBox.Yes | QMessageBox.No | QMessageBox.Cancel ,
+                    )
+                    if confirm2 == QMessageBox.Yes:
+                        self.save_file()
+                    elif confirm2 == QMessageBox.No:
+                        out_fname = QFileDialog.getSaveFileName(
+                            self, "Save As", out_fname, filter="Document (*.docx)"
+                        )[0]
+                    elif confirm2 == QMessageBox.Cancel:
+                        return
+
                 review_utils.generate_review_report(cur_content, out_fname, which=which)
 
                 import os, sys, subprocess
@@ -1256,7 +1289,7 @@ class PyMdWizardMainForm(QMainWindow):
         msg += "Ongoing support provided by the USGS Science Analytics and Synthesis (SAS)<br>"
         msg += f"<br><br>Version: {__version__}<br>"
         msg += "<br> Project page: <a href='https://github.com/usgs/fort-pymdwizard'>https://github.com/usgs/fort-pymdwizard</a>"
-        msg += "<br><br>Contact: Colin Talbert at talbertc@usgs.gov"
+        msg += "<br><br>Contact: Kyle Enns at ask-sdm@usgs.gov"
 
         msgbox = QMessageBox.about(self, "About", msg)
 
@@ -1280,8 +1313,8 @@ class PyMdWizardMainForm(QMainWindow):
 
             install_dir = utils.get_install_dname("pymdwizard")
             repo = Repo(install_dir)
-            fetch = [r for r in repo.remotes if r.name == "usgs_root"][0].fetch()
-            master = [f for f in fetch if f.name == "usgs_root/master"][0]
+            fetch = [r for r in repo.remotes if r.name == "origin"][0].fetch()
+            master = [f for f in fetch if f.name == "origin/master"][0]
 
             if repo.head.commit != master.commit:
                 msg = "An update(s) are available for the Metadata Wizard.\n"
@@ -1298,8 +1331,11 @@ class PyMdWizardMainForm(QMainWindow):
 
         except BaseException as e:
             if show_uptodate_msg:
-                msg = "Problem Encountered Updating from GitHub\n\nError Message:\n"
-                msg += str(e)
+                msg = (
+                    "Problem Encountered Updating from GitHub\n\n"
+                    "USGS users, if you experience issues, please try disconnecting/reconnecting to the internal USGS network and re-checking for updates."
+                )
+                # msg += str(e)
                 QMessageBox.information(self, "Update results", msg)
 
     def update_from_github(self):
@@ -1316,22 +1352,19 @@ class PyMdWizardMainForm(QMainWindow):
 
             install_dir = utils.get_install_dname("pymdwizard")
             repo = Repo(install_dir)
-            fetch = [r for r in repo.remotes if r.name == "usgs_root"][0].fetch()
-            master = [f for f in fetch if f.name == "usgs_root/master"][0]
+            fetch = [r for r in repo.remotes if r.name == "origin"][0].fetch()
+            master = [f for f in fetch if f.name == "origin/master"][0]
 
             merge_msg = repo.git.merge(master.name)
 
-            msg = "Updated Successfully from GitHub."
+            msg = "Updated Successfully from GitHub. Close and re-open Metadata Wizard for changes to be implemented."
             QMessageBox.information(self, "Update results", msg)
         except BaseException as e:
             msg = (
                 "Problem Encountered Updating from GitHub\n\n"
-                "Please upgrade to the latest release by reinstalling the "
-                "application from GitHub "
-                "\n(https://github.com/usgs/fort-pymdwizard/releases)\n\n"
-                "Error Message:\n"
+                "USGS users, if you experience issues, please try disconnecting/reconnecting to the internal USGS network and re-checking for updates."
             )
-            msg += str(e)
+            # msg += str(e)
             QMessageBox.information(self, "Update results", msg)
 
         QApplication.restoreOverrideCursor()
@@ -1372,7 +1405,7 @@ def show_splash(version="2.x.x"):
 
     x, y = 470, 70
     for digit in version:
-        painter.drawPixmap(x, y, numbers[digit])
+        painter.drawPixmap(int(x), y, numbers[digit])
         x += numbers[digit].rect().width() / 3
 
     painter.end()

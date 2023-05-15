@@ -1,17 +1,29 @@
 [
+
   {
     "name": "Metadata Wizard",
     "organization": "U.S. Geological Survey",
-    "description": "Tool for editing and validating FGDC metadata records",
-    "version": "latest",
-    "status": "Release Candidate",
-    "homepage": "https://usgs.github.io/fort-pymdwizard/",
-    "downloadURL": "https://github.com/usgs/fort-pymdwizard/archive/refs/heads/master.zip",
+    "description": "Tool for editing and validating FGDC metadata records.",
+    "version": "2.0.7",
+    "status": "Production",
 
-    "openSourceProject": 1,
-    "license": "https://github.com/usgs/fort-pymdwizard/blob/master/LICENSE.md",
+    "permissions": {
+      "usageType": "openSource",
+      "licenses": [
+        {
+          "name": "Creative Commons Attribution 4.0 International",
+          "URL": "https://code.usgs.gov/usgs/fort-pymdwizard/-/raw/v2.0.7/LICENSE.md"
+        }
+      ]
+    },
+
+    "homepageURL": "https://code.usgs.gov/usgs/fort-pymdwizard/-/tree/v2.0.7",
+    "downloadURL": "https://code.usgs.gov/usgs/fort-pymdwizard/-/archive/v2.0.7/fort-pymdwizard-v2.0.7.zip",
+    "disclaimerURL": "https://code.usgs.gov/usgs/fort-pymdwizard/-/raw/v2.0.7/DISCLAIMER.md",
+    "repositoryURL": "https://code.usgs.gov/usgs/fort-pymdwizard/-/tree/v2.0.7",
     "vcs": "git",
-    "repository": "https://github.com/usgs/fort-pymdwizard",
+
+    "laborHours": 0,
 
     "tags": [
       "metadata",
@@ -19,6 +31,7 @@
       "xml",
       "BDP"
     ],
+
     "languages": [
       "Python",
       "JavaScript",
@@ -28,13 +41,15 @@
     ],
 
     "contact": {
-      "name": "Colin Talbert",
-      "email": "talbertc@usgs.gov"
+      "name": "Kyle Enns",
+      "email": "kenns@usgs.gov"
     },
-    "updated": {
-      "metadataLastUpdated": "2017-09-22"
+
+    "date": {
+      "metadataLastUpdated": "2023-01-10"
     }
   },
+
   {
     "name": "Metadata Wizard",
     "organization": "Colorado State University",
@@ -49,12 +64,15 @@
     "vcs": "git",
     "repository": "https://github.com/mmfink/fort-pymdwizard/tree/2.1.0",
 
+    "laborHours": 0,
+
     "tags": [
       "metadata",
       "FGDC",
       "xml",
       "BDP"
     ],
+
     "languages": [
       "Python",
       "JavaScript",
@@ -71,4 +89,5 @@
       "metadataLastUpdated": "2021-10-20"
     }
   }
+
 ]

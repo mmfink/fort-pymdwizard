@@ -53,7 +53,8 @@ from os.path import dirname
 import platform
 import datetime
 import traceback
-import pkg_resources
+# import pkg_resources
+import urllib.request
 
 try:
     from urllib.parse import urlparse
@@ -275,7 +276,7 @@ def launch_widget(Widget, title="", **kwargs):
         return widget
     except:
         e = sys.exc_info()[0]
-        print("problem encountered", e)
+        print("problem encountered")
         print(traceback.format_exc())
 
 
@@ -291,7 +292,8 @@ def get_resource_path(fname):
     -------
             the full file path to the resource specified
     """
-    return pkg_resources.resource_filename("pymdwizard", "resources/{}".format(fname))
+    # return pkg_resources.resource_filename("pymdwizard", "resources/{}".format(fname))
+    return os.path.abspath(os.path.join(get_install_dname('pymdwizard'), "pymdwizard/resources/{}".format(fname)))
 
 
 def set_window_icon(widget, remove_help=True):
@@ -491,11 +493,12 @@ def get_install_dname(which="pymdwizard"):
     if platform.system() == "Darwin":
         # This is the path to the 'content' folder in the MetadataWizard.app
         pymdwizard_dname = os.path.abspath(
-            os.path.join(dirname(this_fname), *[".."] * 7)
+            os.path.join(dirname(this_fname), *[".."] * 2)
         )
         root_dir = pymdwizard_dname
         executable = sys.executable
         python_dname = os.path.split(executable)[0]
+
     else:
         pymdwizard_dname = dirname(dirname(dirname(this_fname)))
         root_dir = os.path.dirname(pymdwizard_dname)
@@ -517,9 +520,9 @@ def get_install_dname(which="pymdwizard"):
 
 
 def get_pem_fname():
-    return os.path.join(
+    return os.path.abspath(os.path.join(
         get_install_dname("pymdwizard"), "pymdwizard", "resources", "DOIRootCA2.pem"
-    )
+    ))
 
 
 def check_pem_file():
@@ -593,9 +596,30 @@ def get_setting(which, default=None):
         setting in native format, string, integer, etc
 
     """
-    settings = QSettings("USGS", "pymdwizard")
+    settings = QSettings("USGS_2.0.7", "pymdwizard_2.0.7")
     if default is None:
         return settings.value(which)
     else:
         return settings.value(which, default)
 
+
+def url_is_alive(url):
+    """
+    Checks that a given URL is reachable.
+    :param url: A URL
+    :rtype: bool
+    """
+    if url.startswith('www'):
+        url = 'http://' + url
+
+    try:
+        request = urllib.request.Request(url)
+        request.get_method = lambda: 'HEAD'
+    except:
+        request = ''
+
+    try:
+        urllib.request.urlopen(request)
+        return True
+    except:
+        return False
