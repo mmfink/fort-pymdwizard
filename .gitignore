@@ -23,7 +23,7 @@ var/
 venv/
 
 # Documentation build files
-docs/html_output
+# docs/html_output
 
 *.egg-info/
 .installed.cfg
@@ -80,8 +80,15 @@ tests/data
 desktop.ini
 Thumbs.db
 ~$*
+
+#Other
+python36_64
+windows
+
+#Mac
 .DS_Store
 pymdwizard/resources/CNHP_FGDC_Template.xml
+environment.yml
 
 #Spyder
 .spyproject/

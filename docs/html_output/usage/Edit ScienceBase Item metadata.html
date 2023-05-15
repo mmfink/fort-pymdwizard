@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Validating a Metadata Record &mdash; MetadataWizard 2.0.7 documentation</title>
+  <title>Editing existing FGDC metadata record on ScienceBase &mdash; MetadataWizard 2.0.7 documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Making a Metadata Review Report" href="../advancedusage/Metadata Review Report.html" />
-    <link rel="prev" title="Previewing a Metadata Record" href="Previewing a Record.html" /> 
+    <link rel="next" title="Getting Software Updates" href="../Getting Software Updates.html" />
+    <link rel="prev" title="File Management, New, Open, Save, Save as…." href="File Management, New, Open, Save, Save as.....html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -92,14 +92,14 @@
 </ul>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="File Management, New, Open, Save, Save as.....html">File Management, New, Open, Save, Save as….</a></li>
-<li class="toctree-l1"><a class="reference internal" href="Edit ScienceBase Item metadata.html">Editing existing FGDC metadata record on ScienceBase</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Editing existing FGDC metadata record on ScienceBase</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../Getting Software Updates.html">Getting Software Updates</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Using the Metadata Wizard.html">Using the Metadata Wizard</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Spatial Content.html">Spatial Content</a></li>
 <li class="toctree-l1"><a class="reference internal" href="How to fill out the Entity and Attribute tab.html">Populating the Entity and Attribute Tab</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Generating a Taxonomic Information Section.html">Generating a Taxonomic Information Section</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Previewing a Record.html">Previewing a Metadata Record</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Validating a Metadata Record</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Validating a Record.html">Validating a Metadata Record</a></li>
 </ul>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../advancedusage/Metadata Review Report.html">Making a Metadata Review Report</a></li>
@@ -156,13 +156,13 @@
     
       <li><a href="../index.html">Docs</a> &raquo;</li>
         
-      <li>Validating a Metadata Record</li>
+      <li>Editing existing FGDC metadata record on ScienceBase</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="../_sources/usage/Validating a Record.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/usage/Edit ScienceBase Item metadata.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -175,37 +175,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="validating-a-metadata-record">
-<h1>Validating a Metadata Record<a class="headerlink" href="#validating-a-metadata-record" title="Permalink to this headline">¶</a></h1>
-<p>To ensure metadata adheres to the FGDC standard, we can evaluate the syntax
-and the content. The Metadata Wizard handles the syntax validation, but the
-quality of the content requires an individual to validate accuracy of the content.
-Examples of items that can be flagged as syntax errors can include the following:</p>
-<ul class="simple">
-<li><p>missing content in required fields</p></li>
-<li><p>incorrectly formatted items</p></li>
-<li><p>values outside an acceptable range</p></li>
-<li><p>other violations</p></li>
-</ul>
-<p>These errors can be identified directly in the tool by clicking <strong>Run
-Validation</strong> in the Validation item on the menu bar. The record will be
-validated and a message box will notify the user of the number of
-errors found.</p>
-<p><img alt="image0" src="../_images/run_validation.png" /></p>
-<p>The items that are causing validation errors will be highlighted in red on the
-Metadata Wizard.</p>
-<p><img alt="image1" src="../_images/highlighted_errors.png" /></p>
-<p>A second window will display a list of all the errors found. Clicking on one of
-the errors will take the user to the tab/section that contains the error and outline it in
-black. Keep in mind that some errors might be hidden until the user scrolls up or
-down in the application, or selects the appropriate tab.</p>
-<p><img alt="image2" src="../_images/error_screenshot.png" /></p>
-<p>Potential Spelling errors within relevant text boxes will be highlighted in
-red with a yellow background.</p>
-<p><img alt="image3" src="../_images/spelling_highlights.png" /></p>
-<p>This functionality can be turned ON or OFF by clicking the Turn Spelling (ON | OFF)
-item in the validation menu.</p>
-<p><img alt="image4" src="../_images/TurnOnOffSpelling.png" /></p>
+  <div class="section" id="editing-existing-fgdc-metadata-record-on-sciencebase">
+<h1>Editing existing FGDC metadata record on ScienceBase<a class="headerlink" href="#editing-existing-fgdc-metadata-record-on-sciencebase" title="Permalink to this headline">¶</a></h1>
+<p>(New in release 2.0.7)</p>
+<p>Editing the existing FGDC metadata file on ScienceBase Item can be done directly by entering a ScienceBase item ID as well as a user name and password.</p>
+<p>This feature is provided as a convenience for advanced metadata authors managing resources within the USGS ScienceBase system.</p>
+<p>When using this functionality, please ensure that you understand appropriate use of ScienceBase and also account for any necessary edits to other associated resources (e.g., the ScienceBase item, the associated Digital Object Identifier (DOI), etc.) that may be relevant. Note that this function will update the XML file attached to the item but will not re-scrape the element values into the ScienceBase item.*</p>
+<dl class="simple">
+<dt>In the File menu select ‘Open ScienceBase item’:</dt><dd><p><img alt="image0" src="../_images/open_SB_item.png" /></p>
+</dd>
+<dt>In the box that pops up, enter the ScienceBase item ID, username and password:</dt><dd><p><img alt="image1" src="../_images/select_SB_item.png" /></p>
+</dd>
+</dl>
+<p>Click the ‘Check Item’ button to see if the item exists, has a FGDC record attached, he username has write access to the item, and password is correct.</p>
+<p>When you click the ‘OK’ button, these checks will also be run.  If the item is editable it will be auto-downloaded to a temporary location and opened in the MetadataWizard.  Every time you save in the MetadataWizard the updated xml file will be replaced on the ScienceBase item.
+From a user perspective saving changes in the Wizard changes the metadata on the ScienceBase item.</p>
 </div>
 
 
@@ -216,10 +200,10 @@ item in the validation menu.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../advancedusage/Metadata Review Report.html" class="btn btn-neutral float-right" title="Making a Metadata Review Report" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="../Getting Software Updates.html" class="btn btn-neutral float-right" title="Getting Software Updates" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="Previewing a Record.html" class="btn btn-neutral float-left" title="Previewing a Metadata Record" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="File Management, New, Open, Save, Save as.....html" class="btn btn-neutral float-left" title="File Management, New, Open, Save, Save as…." accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

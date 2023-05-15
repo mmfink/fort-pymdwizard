@@ -103,7 +103,7 @@ class Detailed(WizardWidget):  #
         self.ui.fgdc_enttypds.setText(default_def_source)
 
     def browse(self):
-        settings = QSettings("USGS", "pymdwizard")
+        settings = QSettings("USGS_2.0.7", "pymdwizard_2.0.7")
         last_data_fname = settings.value("lastDataFname", "")
         if last_data_fname:
             dname, fname = os.path.split(last_data_fname)
@@ -117,7 +117,6 @@ class Detailed(WizardWidget):  #
         if fname[0]:
             settings.setValue("lastDataFname", fname[0])
             try:
-
                 self.populate_from_fname(fname[0])
             except BaseException as e:
                 import traceback
@@ -214,7 +213,7 @@ class Detailed(WizardWidget):  #
                 shape_attr.ui.fgdc_attrdef.setPlainText("Feature geometry.")
                 utils.set_text(shape_attr.ui.fgdc_attrdefs, "ESRI")
                 shape_attr.domain.ui.fgdc_udom.setPlainText(
-                    "Coordinates defining the features."
+                    "Shape type."
                 )
                 shape_attr.store_current_content()
                 shape_attr.supersize_me()
