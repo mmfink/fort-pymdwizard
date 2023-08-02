@@ -1428,10 +1428,10 @@ def launch_main(xml_fname=None, introspect_fname=None, env_cache={}):
     mdwiz.env_cache = env_cache
     splash.finish(mdwiz)
 
-    try:
-        mdwiz.check_for_updates(show_uptodate_msg=False)
-    except:
-        pass
+    # try:
+    #     mdwiz.check_for_updates(show_uptodate_msg=False)
+    # except:
+    #     pass
 
     if xml_fname is not None and os.path.exists(xml_fname):
         mdwiz.open_file(xml_fname)
